@@ -1,0 +1,137 @@
+import {
+  pgTable,
+  text,
+  uuid,
+  date,
+  integer,
+  boolean,
+  timestamp,
+  index,
+  uniqueIndex,
+  inet,
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { uuidV7Pk, timestamps, bytea } from './_shared';
+import {
+  bankAccountType,
+  localeEnum,
+  payFrequency,
+  payType,
+  submittedVia,
+  tinType,
+  workerStatus,
+  workerType,
+} from './enums';
+import { companies } from './companies';
+
+/**
+ * Company-entered worker data. Freely readable and editable by the company.
+ * Contains no personal identifiers beyond a display name and a mobile number
+ * the company already had in order to send the invite.
+ *
+ * Splitting this table from worker_records is what makes the access rule
+ * enforceable rather than aspirational (spec section 4).
+ */
+export const workers = pgTable(
+  'workers',
+  {
+    id: uuidV7Pk(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'restrict' }),
+
+    workerType: workerType('worker_type').notNull(),
+    displayName: text('display_name').notNull(),
+    phoneE164: text('phone_e164').notNull(),
+    preferredLocale: localeEnum('preferred_locale').notNull().default('en'),
+    status: workerStatus('status').notNull().default('INVITED'),
+
+    // --- payroll fields, entered by the COMPANY, not the worker ---
+    jobTitle: text('job_title'),
+    startDate: date('start_date'),
+    payType: payType('pay_type'),
+    payFrequency: payFrequency('pay_frequency'),
+    workState: text('work_state'),
+    // Pay rate is deliberately absent. See spec section 15 — adding it converts
+    // this into a compensation system with a different disclosure profile.
+
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    legalHold: boolean('legal_hold').notNull().default(false),
+
+    ...timestamps,
+  },
+  (t) => [
+    index('workers_company_idx').on(t.companyId),
+    index('workers_status_idx').on(t.companyId, t.status),
+  ],
+);
+
+/**
+ * Worker-supplied personal and banking data. Append-only: corrections write a
+ * new version and preserve the old one (spec section 7.8), because a worker
+ * cannot log back in to fix anything themselves.
+ *
+ * The app_company role has NO privileges on this table whatsoever — not
+ * column-limited SELECT, none. A company session that reaches it gets a
+ * Postgres permission error, which the DAL converts into a not-found plus a
+ * SECURITY_VIOLATION audit row.
+ */
+export const workerRecords = pgTable(
+  'worker_records',
+  {
+    id: uuidV7Pk(),
+    workerId: uuid('worker_id')
+      .notNull()
+      .references(() => workers.id, { onDelete: 'restrict' }),
+    // Denormalized so the RLS policy can filter without a join.
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'restrict' }),
+
+    version: integer('version').notNull(),
+    effectiveFrom: timestamp('effective_from', { withTimezone: true }).notNull().defaultNow(),
+    supersededAt: timestamp('superseded_at', { withTimezone: true }),
+    isCurrent: boolean('is_current').notNull().default(true),
+
+    legalFirstName: text('legal_first_name').notNull(),
+    legalMiddleName: text('legal_middle_name'),
+    legalLastName: text('legal_last_name').notNull(),
+    dateOfBirth: date('date_of_birth').notNull(),
+
+    addressLine1: text('address_line1'),
+    addressLine2: text('address_line2'),
+    city: text('city'),
+    state: text('state'),
+    postalCode: text('postal_code'),
+    email: text('email'),
+    phoneE164: text('phone_e164'),
+
+    tinType: tinType('tin_type').notNull(),
+    tinEnc: bytea('tin_enc').notNull(),
+    tinLast4: text('tin_last4').notNull(),
+
+    bankName: text('bank_name'),
+    bankAccountType: bankAccountType('bank_account_type'),
+    routingEnc: bytea('routing_enc'),
+    routingLast4: text('routing_last4'),
+    accountEnc: bytea('account_enc'),
+    accountLast4: text('account_last4'),
+
+    emergencyContactName: text('emergency_contact_name'),
+    emergencyContactPhone: text('emergency_contact_phone'),
+    emergencyContactRelationship: text('emergency_contact_relationship'),
+
+    submittedVia: submittedVia('submitted_via').notNull(),
+    submittedIp: inet('submitted_ip'),
+    submittedUserAgent: text('submitted_user_agent'),
+
+    ...timestamps,
+  },
+  (t) => [
+    index('worker_records_worker_idx').on(t.workerId),
+    index('worker_records_company_idx').on(t.companyId),
+    uniqueIndex('worker_records_current_uq').on(t.workerId).where(sql`is_current`),
+    uniqueIndex('worker_records_version_uq').on(t.workerId, t.version),
+  ],
+);

@@ -1,0 +1,13 @@
+{
+  "app": {
+    "name": "Onboarding",
+    "languageSwitcher": "Language",
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "landing": {
+    "title": "Onboarding platform",
+    "subtitle": "Secure intake for accounting firms and the companies they serve.",
+    "status": "Foundation build. Access enforcement is in place; feature work follows."
+  }
+}

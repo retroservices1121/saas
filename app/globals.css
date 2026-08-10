@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+/*
+ * The worker form is used one-handed, outdoors, on whatever phone the person
+ * already owns. 16px is the floor because iOS Safari zooms the viewport on
+ * focus for anything smaller, which breaks a one-question-per-screen layout.
+ */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}

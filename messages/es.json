@@ -1,0 +1,13 @@
+{
+  "app": {
+    "name": "Incorporación",
+    "languageSwitcher": "Idioma",
+    "back": "Atrás",
+    "continue": "Continuar"
+  },
+  "landing": {
+    "title": "Plataforma de incorporación",
+    "subtitle": "Recolección segura de datos para firmas contables y las empresas que atienden.",
+    "status": "Construcción de la base. El control de acceso está implementado; las funciones siguen."
+  }
+}

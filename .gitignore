@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# env — never commit. Railway holds the real values.
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# local dev key material for the stubbed KMS. Never commit.
+.keys/
+*.pem
+*.key
+
+# stubbed S3 (filesystem-backed presigned URLs)
+.local-storage/
+
+# testing
+coverage/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

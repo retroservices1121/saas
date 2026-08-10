@@ -1,0 +1,4 @@
+# Normalize line endings. SQL migrations are checksummed by scripts/migrate.ts,
+# so a CRLF/LF flip between machines would otherwise read as a changed migration.
+* text=auto eol=lf
+*.sql text eol=lf
