@@ -27,7 +27,9 @@ import {
 } from '../lib/db/queries/company';
 import { withScope, withScopeOrNull, ScopeViolationError, schema } from '../lib/db/scoped';
 import type { CompanySession, FirmSession } from '../lib/auth/session';
+import { resolveFirmScope } from '../lib/auth/scope';
 import { evictDek } from '../lib/security/field-encryption';
+import { scanForSensitiveFields } from '../lib/security/response-scan';
 
 let A: CompanyFixture;
 let B: CompanyFixture;
@@ -241,7 +243,13 @@ describe('4. FIRM_STAFF vs a revoked grant', () => {
     // the id is simply absent, which is why this reads as not-found rather than
     // as forbidden — there is nothing to distinguish it from a company that was
     // never granted.
-    const afterRevoke = await resolveFirmScope(A.firmId);
+    //
+    // resolveFirmScope is the production derivation, imported rather than
+    // reimplemented here. A test that models the thing under test tests its own
+    // model: an earlier local copy of this helper omitted the `revoked_at is
+    // null` predicate, and the omission was invisible until the copy was
+    // deleted.
+    const afterRevoke = await resolveFirmScope(A.firmId, A.firmAdminUserId);
     expect(afterRevoke).not.toContain(A.companyId);
 
     const stale = firmSession(A, afterRevoke);
@@ -251,32 +259,10 @@ describe('4. FIRM_STAFF vs a revoked grant', () => {
   });
 });
 
-/**
- * How a firm session's scope is derived at login: live grants only, read
- * server-side, never accepted from the client.
- */
-async function resolveFirmScope(firmId: string): Promise<string[]> {
-  const bootstrap: FirmSession = {
-    kind: 'firm',
-    role: 'FIRM_ADMIN',
-    userId: A.firmAdminUserId,
-    firmId,
-    companyIds: [],
-  };
-  const rows = await withScope(bootstrap, async (db) =>
-    db
-      .select({ companyId: schema.firmCompanyGrants.companyId })
-      .from(schema.firmCompanyGrants),
-  );
-  return rows.map((r) => r.companyId);
-}
-
 // ---------------------------------------------------------------------------
 
-describe('5. no sensitive substring escapes a company-scoped response', () => {
-  const FORBIDDEN = ['_enc', 'tin', 'routing', 'account'];
-
-  it('every company-scoped read serializes without _enc, tin, routing, or account', async () => {
+describe('5. no sensitive field escapes a company-scoped response', () => {
+  it('every company-scoped read serializes without a tin, routing, account, or ciphertext field', async () => {
     const session = companySession(B);
 
     const responses: Record<string, unknown> = {
@@ -288,22 +274,27 @@ describe('5. no sensitive substring escapes a company-scoped response', () => {
     };
 
     for (const [name, payload] of Object.entries(responses)) {
-      const json = JSON.stringify(payload);
-      for (const needle of FORBIDDEN) {
-        expect(
-          json.toLowerCase().includes(needle),
-          `company-scoped response "${name}" contains "${needle}": ${json.slice(0, 400)}`,
-        ).toBe(false);
-      }
+      const findings = scanForSensitiveFields(payload, name);
+      expect(
+        findings,
+        `company-scoped response "${name}" leaked: ${JSON.stringify(findings)}`,
+      ).toEqual([]);
     }
   });
 
-  it('the scanner would actually catch a leak', async () => {
+  it('the scanner would actually catch a leak', () => {
     // A scanner that never fires is indistinguishable from one that is broken.
-    // This proves the assertion above has teeth.
-    const leaky = JSON.stringify({ tinLast4: '6789' });
-    const caught = FORBIDDEN.some((n) => leaky.toLowerCase().includes(n));
-    expect(caught).toBe(true);
+    // This proves the assertion above has teeth — every shape it must catch,
+    // and the shape it must not.
+    expect(scanForSensitiveFields({ tinLast4: '6789' })).toHaveLength(1);
+    expect(scanForSensitiveFields({ tin_enc: 'x' })).toHaveLength(1);
+    expect(scanForSensitiveFields({ routingLast4: '0021' })).toHaveLength(1);
+    expect(scanForSensitiveFields({ rows: [{ accountNumber: '1' }] })).toHaveLength(1);
+    expect(scanForSensitiveFields({ blob: Buffer.from('x') })).toHaveLength(1);
+
+    // ...and does not fire on the legitimate field that made the spec's literal
+    // substring check unusable.
+    expect(scanForSensitiveFields({ operatingStates: ['NY'] })).toEqual([]);
   });
 
   it('no ciphertext is ever serializable from a company session', async () => {
