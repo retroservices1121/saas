@@ -374,3 +374,90 @@ export async function countAuditRows(firmId: string, action: string): Promise<nu
   `;
   return Number(rows[0]?.n ?? 0);
 }
+
+// ---------------------------------------------------------------------------
+// Firm-only fixture, for tests that create their own companies
+// ---------------------------------------------------------------------------
+
+export interface FirmFixture {
+  firmId: string;
+  firmAdminUserId: string;
+  firmStaffUserId: string;
+}
+
+/**
+ * A firm with two active staff users and no companies.
+ *
+ * Tests that exercise `createCompany` need the firm to exist and the company
+ * not to, which no other fixture provides — seedCompany deliberately builds a
+ * finished tenant.
+ */
+export async function seedFirm(): Promise<FirmFixture> {
+  const tag = runTag();
+  const firmId = randomUUID();
+  const firmAdminUserId = randomUUID();
+  const firmStaffUserId = randomUUID();
+
+  // The TOTP secret is never used here; users_totp_pair_ck requires the column
+  // to travel with totp_enabled_at, and these users must be `active`.
+  const filler = Buffer.from(randomBytes(60));
+
+  await admin.begin(async (tx) => {
+    await tx`
+      insert into firms (id, name, contact_email, status)
+      values (${firmId}, ${`Firm ${tag}`}, ${`firm-${tag}@example.test`}, 'active')
+    `;
+    await tx`
+      insert into users (id, email, name, role, firm_id, status,
+                         totp_secret_enc, totp_enabled_at)
+      values
+        (${firmAdminUserId}, ${`fa-${tag}@example.test`}, 'Firm Admin', 'FIRM_ADMIN',
+         ${firmId}, 'active', ${filler}, now()),
+        (${firmStaffUserId}, ${`fs-${tag}@example.test`}, 'Firm Staff', 'FIRM_STAFF',
+         ${firmId}, 'active', ${filler}, now())
+    `;
+  });
+
+  return { firmId, firmAdminUserId, firmStaffUserId };
+}
+
+/** Removes a firm and every company it created during a test. */
+export async function destroyFirm(firmId: string): Promise<void> {
+  await admin.begin(async (tx) => {
+    const companies = await tx<{ id: string }[]>`
+      select id from companies where firm_id = ${firmId}
+    `;
+    for (const { id } of companies) {
+      await tx`delete from audit_log where company_id = ${id}`;
+      await tx`delete from notes where company_id = ${id}`;
+      await tx`delete from documents where company_id = ${id}`;
+      await tx`delete from signatures where company_id = ${id}`;
+      await tx`delete from reminders where company_id = ${id}`;
+      await tx`delete from invites where company_id = ${id}`;
+      await tx`delete from worker_records where company_id = ${id}`;
+      await tx`delete from workers where company_id = ${id}`;
+      await tx`delete from company_owners where company_id = ${id}`;
+      await tx`delete from firm_company_grants where company_id = ${id}`;
+    }
+    await tx`delete from audit_log where firm_id = ${firmId}`;
+    await tx`delete from exports where firm_id = ${firmId}`;
+    await tx`delete from user_setup_tokens where user_id in (
+      select id from users where firm_id = ${firmId}
+    )`;
+    await tx`delete from staff_sessions where user_id in (
+      select id from users where firm_id = ${firmId}
+    )`;
+    await tx`delete from users where firm_id = ${firmId}`;
+    await tx`delete from companies where firm_id = ${firmId}`;
+    await tx`delete from firms where id = ${firmId}`;
+  });
+}
+
+/** Reads a stored object back past RLS, to assert what actually landed. */
+export async function readRow<T extends Record<string, unknown>>(
+  query: string,
+  ...params: unknown[]
+): Promise<T | null> {
+  const rows = await admin.unsafe<T[]>(query, params as never[]);
+  return rows[0] ?? null;
+}

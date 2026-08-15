@@ -1,0 +1,2 @@
+ALTER TYPE "public"."audit_action" ADD VALUE 'DOCUMENT_UPLOADED' BEFORE 'EXPORT_CREATED';--> statement-breakpoint
+ALTER TYPE "public"."audit_action" ADD VALUE 'DOCUMENT_DELETED' BEFORE 'EXPORT_CREATED';

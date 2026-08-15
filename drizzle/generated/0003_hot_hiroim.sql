@@ -1,0 +1,1 @@
+ALTER TABLE "invites" ADD COLUMN "expected_dob_hash" text;

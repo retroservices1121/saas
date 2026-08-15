@@ -79,11 +79,35 @@ async function main(): Promise<void> {
       console.log('No migration history yet — bootstrapping.');
     }
 
+    // If ANY hand-written post migration changed, re-apply ALL of them, in
+    // order.
+    //
+    // They are idempotent by construction, so re-running is free. What is not
+    // free is the alternative: these files revoke and re-grant privileges on
+    // the tables they govern, and a later file often narrows what an earlier
+    // one granted. Re-applying only the changed file restores the wider grant
+    // and silently drops the narrowing — the failure surfaces later as a role
+    // that can read a column it should not, which is precisely the class of bug
+    // this whole schema exists to prevent, arriving through the tool meant to
+    // prevent it.
+    const postChanged = migrations.some(
+      (m) =>
+        m.filename.startsWith('drizzle/post/') &&
+        applied.has(m.filename) &&
+        applied.get(m.filename) !== m.checksum,
+    );
+    if (postChanged) {
+      console.log('A post migration changed — re-applying all of drizzle/post in order.');
+    }
+
     let ran = 0;
     for (const m of migrations) {
       const previous = applied.get(m.filename);
+      const forced = postChanged && m.filename.startsWith('drizzle/post/');
 
-      if (previous && previous !== m.checksum) {
+      if (forced && previous && previous === m.checksum) {
+        console.log(`~ ${m.filename} (unchanged, re-applying after a sibling change)`);
+      } else if (previous && previous !== m.checksum) {
         // A hand-written post/ migration is allowed to be re-run: every
         // statement in it is idempotent by construction (create or replace,
         // drop policy if exists, add constraint after drop). A generated

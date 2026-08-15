@@ -68,6 +68,11 @@ export const docType = pgEnum('doc_type', [
   'W9',
   'W4',
   'I9',
+  // The PDF of a signed authorization (spec section 9, step 5). Not in the
+  // spec's list, which predates the retained-record requirement having a home:
+  // storing these as OTHER made them COMPANY_VISIBLE by default, because OTHER
+  // is the type a company admin uses for an ordinary business document.
+  'SIGNED_AUTHORIZATION',
   'OTHER',
 ]);
 
@@ -101,6 +106,12 @@ export const auditAction = pgEnum('audit_action', [
   'REVEAL_TIN',
   'REVEAL_BANK',
   'DOCUMENT_VIEWED',
+  // Not in the spec's list. A document that appears in a firm's view and a
+  // document that disappears from it are both disclosures of a kind, and
+  // DOCUMENT_VIEWED cannot carry either meaning without a metadata field that
+  // nobody would think to query.
+  'DOCUMENT_UPLOADED',
+  'DOCUMENT_DELETED',
   'EXPORT_CREATED',
   'EXPORT_DOWNLOADED',
   'REMINDER_SENT',

@@ -211,4 +211,55 @@ export async function recordSecurityViolation(
   }
 }
 
+/**
+ * Why some inserts in this codebase are hand-written SQL.
+ *
+ * Drizzle builds an INSERT naming EVERY column of the table, passing `default`
+ * for the ones the caller did not supply:
+ *
+ *   insert into company_owners ("id", "company_id", ..., "tin_enc", "tin_last4", ...)
+ *   values ($1, $2, ..., default, default, ...)
+ *
+ * Postgres checks INSERT privilege on every column *mentioned*, and `default`
+ * mentions it. So a role holding column-level INSERT on seven columns cannot
+ * perform a Drizzle insert on a twenty-three-column table at all — it fails with
+ * `permission denied for table`, which reads like a missing grant rather than
+ * like the ORM naming columns nobody asked it to.
+ *
+ * That leaves two options. Widen the grants to every column, which would let a
+ * company session write `tin_enc` on an owner row — precisely what
+ * "el empleador no debe ver ni recolectar estos datos directamente" forbids;
+ * collecting is named in that sentence alongside seeing. Or name the columns
+ * explicitly. This helper is the second option.
+ *
+ * The column list here matches the GRANT in the migration exactly, which makes
+ * the two readable against each other — arguably better documentation than a
+ * values object that says nothing about what the role may write.
+ */
+export function insertColumns(
+  table: string,
+  values: Record<string, unknown>,
+): ReturnType<typeof sql> {
+  const columns = Object.keys(values);
+  if (columns.length === 0) throw new Error('Refusing to build an insert with no columns.');
+  if (!/^[a-z_][a-z0-9_]*$/.test(table)) throw new Error(`Unsafe table name: ${table}`);
+  for (const column of columns) {
+    if (!/^[a-z_][a-z0-9_]*$/.test(column)) throw new Error(`Unsafe column name: ${column}`);
+  }
+
+  const columnList = sql.raw(columns.map((c) => `"${c}"`).join(', '));
+  const placeholders = sql.join(
+    // Drizzle's typed insert builder maps JS values onto column types; a raw
+    // `sql` fragment does not, and postgres.js refuses to bind a Date. ISO 8601
+    // with an explicit offset is unambiguous to `timestamptz` and to `date`.
+    columns.map((c) => {
+      const value = values[c];
+      return sql`${value instanceof Date ? value.toISOString() : value}`;
+    }),
+    sql`, `,
+  );
+
+  return sql`insert into ${sql.raw(`"${table}"`)} (${columnList}) values (${placeholders})`;
+}
+
 export { schema };

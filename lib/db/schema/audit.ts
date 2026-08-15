@@ -98,6 +98,19 @@ export const invites = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     consumedAt: timestamp('consumed_at', { withTimezone: true }),
 
+    /**
+     * The date-of-birth gate, stored as an argon2id hash rather than as a date.
+     *
+     * The gate exists to keep the company admin out of a link they may have
+     * intercepted, so the expected value is the last thing that may be readable
+     * by a company session. Two mechanisms keep it from them: this column is
+     * not in the column-level SELECT grant app_company holds on this table
+     * (migration 902), and even given the value it is a slow hash rather than a
+     * date — a date of birth has only around thirty thousand plausible values,
+     * so a fast hash would be a lookup table, not a secret.
+     */
+    expectedDobHash: text('expected_dob_hash'),
+
     // Second-factor gate state.
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
     failedAttempts: integer('failed_attempts').notNull().default(0),

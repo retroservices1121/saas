@@ -15,6 +15,27 @@
       "when": 1786795418450,
       "tag": "0001_omniscient_zaladane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786797125639,
+      "tag": "0002_productive_callisto",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786797287603,
+      "tag": "0003_hot_hiroim",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786805552318,
+      "tag": "0004_demonic_fat_cobra",
+      "breakpoints": true
     }
   ]
 }

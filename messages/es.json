@@ -1,9 +1,14 @@
 {
   "_translation": {
     "note": "TRADUCCIÓN PENDIENTE DE REVISIÓN. La sección 12 de la especificación exige traducción humana para: el texto de consentimiento, ambos documentos de firma, el aviso de privacidad y todos los errores de validación de identificación fiscal. Las claves bajo `esign`, `privacy` y `validation.ssn` / `validation.itin` / `validation.tin` deben sustituirse por texto aprobado por el asesor legal del cliente en inglés y traducido por una persona al español antes del lanzamiento.",
-    "needsCounselReview": ["esign", "privacy", "validation.ssn", "validation.itin", "validation.tin"]
+    "needsCounselReview": [
+      "esign",
+      "privacy",
+      "validation.ssn",
+      "validation.itin",
+      "validation.tin"
+    ]
   },
-
   "app": {
     "name": "Incorporación",
     "languageSwitcher": "Idioma",
@@ -18,26 +23,22 @@
     "of": "de",
     "step": "Paso {current} de {total}"
   },
-
   "landing": {
     "title": "Plataforma de incorporación",
     "subtitle": "Recolección segura de datos para despachos contables y las empresas a las que atienden.",
     "signIn": "Iniciar sesión"
   },
-
   "auth": {
     "signInTitle": "Iniciar sesión",
     "signInSubtitle": "Acceso para personal. Los trabajadores y propietarios usan el enlace que recibieron.",
     "email": "Correo electrónico",
     "password": "Contraseña",
     "signIn": "Iniciar sesión",
-
     "verifyTitle": "Código de autenticación",
     "verifySubtitle": "Introduzca el código de seis dígitos de su aplicación de autenticación.",
     "totpCode": "Código de seis dígitos",
     "totpHint": "De su aplicación de autenticación.",
     "verify": "Verificar",
-
     "setupTitle": "Configure su cuenta",
     "setupSubtitle": "Creando el acceso para {email}.",
     "setupStep1": "1. Elija una contraseña",
@@ -52,10 +53,8 @@
     "setupComplete": "Su cuenta está lista. Inicie sesión con su nueva contraseña.",
     "setupExpiredTitle": "Este enlace ya no es válido",
     "setupExpiredBody": "Los enlaces de configuración caducan a las 24 horas y solo pueden usarse una vez. Pida a quien le invitó que le envíe uno nuevo.",
-
     "reauthTitle": "Confirme su identidad",
     "reauthHint": "Introduzca un código nuevo de su aplicación de autenticación.",
-
     "errors": {
       "invalid": "Ese correo electrónico y esa contraseña no coinciden con ninguna cuenta.",
       "throttled": "Demasiados intentos. Vuelva a intentarlo en unos minutos.",
@@ -68,7 +67,6 @@
       "forbidden": "No tiene acceso a eso."
     }
   },
-
   "validation": {
     "ssn": {
       "length": "Un número de Seguro Social tiene nueve dígitos.",
@@ -124,16 +122,36 @@
       "required": "Introduzca el código postal.",
       "format": "Introduzca un código postal de cinco dígitos."
     },
-    "state": { "unknown": "Elija un estado." },
-    "address": { "required": "Introduzca la dirección." },
-    "city": { "required": "Introduzca la ciudad." },
-    "legalName": { "required": "Introduzca la razón social." },
-    "displayName": { "required": "Introduzca un nombre." },
-    "adminName": { "required": "Introduzca el nombre del administrador." },
-    "firstName": { "required": "Introduzca su nombre." },
-    "lastName": { "required": "Introduzca sus apellidos." },
-    "bankName": { "required": "Introduzca el nombre del banco." },
-    "operatingStates": { "required": "Elija al menos un estado." },
+    "state": {
+      "unknown": "Elija un estado."
+    },
+    "address": {
+      "required": "Introduzca la dirección."
+    },
+    "city": {
+      "required": "Introduzca la ciudad."
+    },
+    "legalName": {
+      "required": "Introduzca la razón social."
+    },
+    "displayName": {
+      "required": "Introduzca un nombre."
+    },
+    "adminName": {
+      "required": "Introduzca el nombre del administrador."
+    },
+    "firstName": {
+      "required": "Introduzca su nombre."
+    },
+    "lastName": {
+      "required": "Introduzca sus apellidos."
+    },
+    "bankName": {
+      "required": "Introduzca el nombre del banco."
+    },
+    "operatingStates": {
+      "required": "Elija al menos un estado."
+    },
     "wc": {
       "policyNumberRequired": "Introduzca el número de póliza.",
       "expiryRequired": "Introduzca la fecha de vencimiento."
@@ -142,17 +160,40 @@
       "nameRequired": "Escriba su nombre legal completo para firmar.",
       "consentRequired": "Debe aceptar firmar electrónicamente para continuar."
     },
-    "totp": { "format": "Introduzca los seis dígitos de su aplicación de autenticación." },
+    "totp": {
+      "format": "Introduzca los seis dígitos de su aplicación de autenticación."
+    },
     "password": {
       "required": "Introduzca su contraseña.",
       "tooShort": "Use al menos 12 caracteres.",
       "tooLong": "Esa contraseña es demasiado larga.",
       "mismatch": "Las dos contraseñas no coinciden."
     },
-    "reveal": { "reasonTooShort": "Indique un motivo de al menos diez caracteres." },
+    "reveal": {
+      "reasonTooShort": "Indique un motivo de al menos diez caracteres."
+    },
     "export": {
       "reasonTooShort": "Indique un motivo de al menos diez caracteres.",
       "companyRequired": "Elija al menos una empresa."
+    }
+  },
+  "notifications": {
+    "workerInvite": {
+      "sms": "{company} le pide completar su información de incorporación. Toma unos 5 minutos y su empleador no verá lo que usted escriba. Comience aquí: {url}"
+    },
+    "ownerInvite": {
+      "sms": "{company} le pide proporcionar su información de propietario para la declaración de impuestos. Toma unos 3 minutos. Comience aquí: {url}"
+    },
+    "reminder": {
+      "sms": "Recordatorio de {company}: su incorporación aún no está completa. Complétela aquí: {url}"
+    },
+    "staffSetup": {
+      "subject": "Configure su cuenta de Incorporación",
+      "body": "Hola {name}:\n\nSe ha creado una cuenta para usted en la plataforma de Incorporación.\n\nEstablezca su contraseña e inscriba su aplicación de autenticación aquí. El enlace funciona una sola vez y caduca en 24 horas:\n\n{url}\n\nSi no esperaba este mensaje, puede ignorarlo y el enlace caducará por sí solo."
+    },
+    "needsAttention": {
+      "subject": "La incorporación requiere atención",
+      "body": "{name} no ha completado su incorporación tras varios recordatorios.\n\nRevísela aquí:\n\n{url}"
     }
   }
 }

@@ -3,7 +3,6 @@
     "note": "Spec section 12 requires HUMAN translation for: the consent text, both signature documents, the privacy notice, and every tax ID validation error. Keys under `esign`, `privacy`, and `validation.ssn` / `validation.itin` / `validation.tin` are marked `needsCounselReview` in the Spanish catalogue and must be replaced with copy approved by the client's counsel in English and human-translated to Spanish before launch. Machine translation is not acceptable for those.",
     "designWidth": "Every screen is designed at Spanish string lengths and tested at 360px."
   },
-
   "app": {
     "name": "Onboarding",
     "languageSwitcher": "Language",
@@ -18,26 +17,22 @@
     "of": "of",
     "step": "Step {current} of {total}"
   },
-
   "landing": {
     "title": "Onboarding platform",
     "subtitle": "Secure intake for accounting firms and the companies they serve.",
     "signIn": "Sign in"
   },
-
   "auth": {
     "signInTitle": "Sign in",
     "signInSubtitle": "Staff access. Workers and owners use the link they were sent.",
     "email": "Email address",
     "password": "Password",
     "signIn": "Sign in",
-
     "verifyTitle": "Authentication code",
     "verifySubtitle": "Enter the six-digit code from your authenticator app.",
     "totpCode": "Six-digit code",
     "totpHint": "From your authenticator app.",
     "verify": "Verify",
-
     "setupTitle": "Set up your account",
     "setupSubtitle": "Creating access for {email}.",
     "setupStep1": "1. Choose a password",
@@ -52,10 +47,8 @@
     "setupComplete": "Your account is ready. Sign in with your new password.",
     "setupExpiredTitle": "This link is no longer valid",
     "setupExpiredBody": "Setup links expire after 24 hours and can be used once. Ask whoever invited you to send a new one.",
-
     "reauthTitle": "Confirm it is you",
     "reauthHint": "Enter a fresh code from your authenticator app.",
-
     "errors": {
       "invalid": "That email address and password do not match an account.",
       "throttled": "Too many attempts. Try again in a few minutes.",
@@ -68,7 +61,6 @@
       "forbidden": "You do not have access to that."
     }
   },
-
   "validation": {
     "ssn": {
       "length": "A Social Security number has nine digits.",
@@ -124,16 +116,36 @@
       "required": "Enter the ZIP code.",
       "format": "Enter a five-digit ZIP code."
     },
-    "state": { "unknown": "Choose a state." },
-    "address": { "required": "Enter the street address." },
-    "city": { "required": "Enter the city." },
-    "legalName": { "required": "Enter the legal name." },
-    "displayName": { "required": "Enter a name." },
-    "adminName": { "required": "Enter the administrator's name." },
-    "firstName": { "required": "Enter your first name." },
-    "lastName": { "required": "Enter your last name." },
-    "bankName": { "required": "Enter the name of the bank." },
-    "operatingStates": { "required": "Choose at least one state." },
+    "state": {
+      "unknown": "Choose a state."
+    },
+    "address": {
+      "required": "Enter the street address."
+    },
+    "city": {
+      "required": "Enter the city."
+    },
+    "legalName": {
+      "required": "Enter the legal name."
+    },
+    "displayName": {
+      "required": "Enter a name."
+    },
+    "adminName": {
+      "required": "Enter the administrator's name."
+    },
+    "firstName": {
+      "required": "Enter your first name."
+    },
+    "lastName": {
+      "required": "Enter your last name."
+    },
+    "bankName": {
+      "required": "Enter the name of the bank."
+    },
+    "operatingStates": {
+      "required": "Choose at least one state."
+    },
     "wc": {
       "policyNumberRequired": "Enter the policy number.",
       "expiryRequired": "Enter the expiry date."
@@ -142,17 +154,40 @@
       "nameRequired": "Type your full legal name to sign.",
       "consentRequired": "You must agree to sign electronically to continue."
     },
-    "totp": { "format": "Enter the six digits from your authenticator app." },
+    "totp": {
+      "format": "Enter the six digits from your authenticator app."
+    },
     "password": {
       "required": "Enter your password.",
       "tooShort": "Use at least 12 characters.",
       "tooLong": "That password is too long.",
       "mismatch": "The two passwords do not match."
     },
-    "reveal": { "reasonTooShort": "Give a reason of at least ten characters." },
+    "reveal": {
+      "reasonTooShort": "Give a reason of at least ten characters."
+    },
     "export": {
       "reasonTooShort": "Give a reason of at least ten characters.",
       "companyRequired": "Choose at least one company."
+    }
+  },
+  "notifications": {
+    "workerInvite": {
+      "sms": "{company} has asked you to complete your onboarding information. It takes about 5 minutes and your employer will not see what you enter. Start here: {url}"
+    },
+    "ownerInvite": {
+      "sms": "{company} has asked you to provide your owner information for tax filing. It takes about 3 minutes. Start here: {url}"
+    },
+    "reminder": {
+      "sms": "Reminder from {company}: your onboarding is not finished yet. Complete it here: {url}"
+    },
+    "staffSetup": {
+      "subject": "Set up your Onboarding account",
+      "body": "Hello {name},\n\nAn account has been created for you on the Onboarding platform.\n\nSet your password and enrol your authenticator app here. The link works once and expires in 24 hours:\n\n{url}\n\nIf you were not expecting this, you can ignore this message and the link will expire on its own."
+    },
+    "needsAttention": {
+      "subject": "Onboarding needs attention",
+      "body": "{name} has not completed their onboarding after repeated reminders.\n\nReview it here:\n\n{url}"
     }
   }
 }

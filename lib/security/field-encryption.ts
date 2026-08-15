@@ -45,10 +45,36 @@ export interface AuditContext {
   action: 'REVEAL_TIN' | 'REVEAL_BANK';
   /** At least ten characters, per spec section 7.6. Absent for subject sessions. */
   reason?: string | undefined;
+  /**
+   * The table, or `COMPANY_BANK` for the company's own account — see the guard
+   * below, which is the one case where a company session may decrypt.
+   */
   targetType: string;
   targetId: string;
   companyId: string;
 }
+
+/**
+ * The company's own bank account, which is the single exception to "a company
+ * user can never decrypt".
+ *
+ * Two clauses of the spec meet here and appear to disagree. Section 5 says
+ * decryptField refuses anything that is not a firm role or the data subject.
+ * Section 4 says the company's own banking is "masked in the company's own UI
+ * with a reveal available to COMPANY_ADMIN only".
+ *
+ * They agree once you notice that for this one field the company IS the data
+ * subject. The employer-cannot-see rule protects a worker's account from their
+ * employer; it says nothing about an account the company itself owns, opened in
+ * its own name, and typed in by its own admin. Section 4 says so directly:
+ * company banking "is not subject to the employer-cannot-see rule, since the
+ * company owns that account".
+ *
+ * The exception is written as a named constant and matched exactly, so it can
+ * never widen to a worker record by accident. COMPANY_STAFF is excluded, and a
+ * reason and an audit row are still required.
+ */
+export const COMPANY_BANK_TARGET = 'COMPANY_BANK';
 
 // ---------------------------------------------------------------------------
 // DEK cache
@@ -174,7 +200,16 @@ export async function decryptField(
     session.companyId === companyId &&
     session.subjectId === context.targetId;
 
-  if (!DECRYPT_ROLES.has(session.role) && !subjectMayRead) {
+  // The company's own account, and nothing else. Every clause is required: the
+  // role, the exact target type, and both ids agreeing with the session.
+  const companyOwnBank =
+    session.kind === 'company' &&
+    session.role === 'COMPANY_ADMIN' &&
+    context.targetType === COMPANY_BANK_TARGET &&
+    context.targetId === session.companyId &&
+    companyId === session.companyId;
+
+  if (!DECRYPT_ROLES.has(session.role) && !subjectMayRead && !companyOwnBank) {
     // Record it, then throw. Never return empty — a caller that treats an empty
     // string as "no data" would turn a security defect into a data-quality
     // ticket.
@@ -187,7 +222,9 @@ export async function decryptField(
     throw new DecryptForbiddenError(session.role);
   }
 
-  if (DECRYPT_ROLES.has(session.role)) {
+  // A subject reading back their own answer mid-form is not a disclosure and
+  // has nobody to explain it to. Everyone else states a reason.
+  if (DECRYPT_ROLES.has(session.role) || companyOwnBank) {
     const reason = context.reason?.trim() ?? '';
     if (reason.length < 10) {
       throw new Error('A reveal reason of at least ten characters is required.');

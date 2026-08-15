@@ -366,25 +366,10 @@ create policy reminders_all on reminders
   with check (app.can_read_company(company_id) and (app.is_firm() or app.is_company()));
 
 -- --- invites ---------------------------------------------------------------
--- A subject reaches its invite by token hash before any session exists, so the
--- lookup runs as app_subject with the invite's own company already resolved.
-drop policy if exists invites_select on invites;
-create policy invites_select on invites
-  for select using (
-    app.can_read_company(company_id)
-    or (app.is_subject() and subject_id = app.subject_id())
-  );
-
-drop policy if exists invites_write on invites;
-create policy invites_write on invites
-  for all using (
-    app.can_read_company(company_id)
-    or (app.is_subject() and subject_id = app.subject_id())
-  )
-  with check (
-    app.can_read_company(company_id)
-    or (app.is_subject() and subject_id = app.subject_id())
-  );
+-- Deliberately absent. The invites table is owned end to end by 902_invites.sql
+-- — its policies, its column-level grants, and the security-definer function
+-- the anonymous lookup uses. Splitting it across two files would mean this
+-- file's revoke stripped that file's grants on every re-apply.
 
 -- --- audit_log -------------------------------------------------------------
 -- Anyone may append. Reading is scope-limited, and a subject may read nothing.
@@ -475,7 +460,7 @@ begin
   foreach t in array array[
     'firms','users','companies','firm_company_grants','company_owners',
     'workers','worker_records','signatures','documents','notes','reminders',
-    'invites','audit_log','exports'
+    'audit_log','exports'
   ]
   loop
     execute format(
@@ -490,7 +475,7 @@ revoke all on all sequences in schema public from app_platform, app_firm, app_co
 -- --- app_firm: the only role that reads sensitive data ---------------------
 grant select, insert, update on
   companies, firm_company_grants, company_owners, workers,
-  signatures, documents, notes, reminders, invites, users, firms
+  signatures, documents, notes, reminders, users, firms
 to app_firm;
 
 -- Append-only for the firm as well. No UPDATE, no DELETE, ever.
@@ -502,7 +487,7 @@ grant select, insert, update on exports to app_firm;
 grant select, insert, update on companies to app_company;
 grant select, insert, update on workers   to app_company;
 grant select, insert, update on reminders to app_company;
-grant select, insert on documents, notes, signatures, invites to app_company;
+grant select, insert on documents, notes, signatures to app_company;
 grant insert on audit_log to app_company;
 grant select on users, firms to app_company;
 
@@ -536,7 +521,6 @@ grant select, update on company_owners to app_subject;
 grant select on workers to app_subject;
 grant select, insert on worker_records to app_subject;
 grant select, insert on signatures, documents, notes to app_subject;
-grant select, update on invites to app_subject;
 grant insert on audit_log to app_subject;
 
 -- --- app_platform: metadata only -------------------------------------------
@@ -576,7 +560,8 @@ begin
     new.sensitivity := 'FIRM_ONLY';
   end if;
   -- These document types are firm-only regardless of who uploaded them.
-  if new.doc_type in ('VOIDED_CHECK', 'ID_DOCUMENT', 'W4', 'W9', 'I9') then
+  if new.doc_type in ('VOIDED_CHECK', 'ID_DOCUMENT', 'W4', 'W9', 'I9',
+                      'SIGNED_AUTHORIZATION') then
     new.sensitivity := 'FIRM_ONLY';
   end if;
   return new;
