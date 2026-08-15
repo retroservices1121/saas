@@ -41,18 +41,28 @@ export interface AuditEvent {
    * storage, and it is retained for the life of the record.
    */
   metadata?: Record<string, unknown> | null | undefined;
+
+  /**
+   * Overrides for the login path, which runs as ANONYMOUS by construction — the
+   * session cannot know who the actor is, because establishing that is the
+   * operation being recorded. A LOGIN_SUCCESS row with a null actor is useless
+   * for exactly the question it exists to answer.
+   */
+  actorUserId?: string | null | undefined;
+  actorRole?: string | undefined;
+  firmId?: string | null | undefined;
 }
 
 function rowFor(session: Session, event: AuditEvent) {
   const scope = scopeOf(session);
   return {
-    firmId: firmIdOf(session),
+    firmId: event.firmId ?? firmIdOf(session),
     // A firm session touching one company must name it; falling back to the
     // first id in scope would misattribute the event to whichever company
     // happened to sort first.
     companyId: event.companyId ?? (scope.length === 1 ? scope[0]! : null),
-    actorUserId: actorUserIdOf(session),
-    actorRole: session.role as ActorRole,
+    actorUserId: event.actorUserId ?? actorUserIdOf(session),
+    actorRole: (event.actorRole ?? session.role) as ActorRole,
     action: event.action,
     targetType: event.targetType ?? null,
     targetId: event.targetId ?? null,

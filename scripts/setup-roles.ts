@@ -51,7 +51,7 @@ async function main(): Promise<void> {
       `);
 
       await tx.unsafe(`
-        grant app_platform, app_firm, app_company, app_subject to app_user;
+        grant app_platform, app_firm, app_company, app_subject, app_auth to app_user;
         grant connect on database ${quoteIdent(dbName)} to app_user;
         grant usage on schema public, app to app_user;
       `);

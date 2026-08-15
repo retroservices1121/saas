@@ -16,7 +16,7 @@ import { getKms } from './kms';
 // eslint-disable-next-line no-restricted-imports
 import { open, seal } from './aes';
 import type { Session } from '../auth/session';
-import { isFirmSession, isSubjectSession } from '../auth/session';
+import { actorUserIdOf, isFirmSession, isSubjectSession } from '../auth/session';
 
 /** Roles permitted to decrypt at all. Everything else is a violation. */
 const DECRYPT_ROLES = new Set(['FIRM_ADMIN', 'FIRM_STAFF']);
@@ -199,7 +199,7 @@ export async function decryptField(
     await db.insert(schema.auditLog).values({
       firmId: isFirmSession(session) ? session.firmId : null,
       companyId,
-      actorUserId: session.kind === 'subject' ? null : session.userId,
+      actorUserId: actorUserIdOf(session),
       actorRole: session.role,
       action: context.action,
       targetType: context.targetType,
@@ -224,7 +224,7 @@ async function recordDecryptViolation(context: AuditContext): Promise<void> {
       await db.insert(schema.auditLog).values({
         firmId: isFirmSession(session) ? session.firmId : null,
         companyId,
-        actorUserId: session.kind === 'subject' ? null : session.userId,
+        actorUserId: actorUserIdOf(session),
         actorRole: session.role,
         action: 'SECURITY_VIOLATION',
         targetType: context.targetType,

@@ -64,7 +64,7 @@ export async function resolveFirmScope(
  */
 export async function sessionForStaffUser(
   user: {
-    id: string;
+    userId: string;
     role: 'PLATFORM_ADMIN' | 'FIRM_ADMIN' | 'FIRM_STAFF' | 'COMPANY_ADMIN' | 'COMPANY_STAFF';
     firmId: string | null;
     companyId: string | null;
@@ -76,20 +76,20 @@ export async function sessionForStaffUser(
       const session: PlatformSession = {
         kind: 'platform',
         role: 'PLATFORM_ADMIN',
-        userId: user.id,
+        userId: user.userId,
         ...request,
       };
       return session;
     }
     case 'FIRM_ADMIN':
     case 'FIRM_STAFF': {
-      if (!user.firmId) throw new Error(`Firm user ${user.id} has no firm_id.`);
+      if (!user.firmId) throw new Error(`Firm user ${user.userId} has no firm_id.`);
       const session: FirmSession = {
         kind: 'firm',
         role: user.role,
-        userId: user.id,
+        userId: user.userId,
         firmId: user.firmId,
-        companyIds: await resolveFirmScope(user.firmId, user.id, user.role),
+        companyIds: await resolveFirmScope(user.firmId, user.userId, user.role),
         ...request,
       };
       return session;
@@ -97,12 +97,12 @@ export async function sessionForStaffUser(
     case 'COMPANY_ADMIN':
     case 'COMPANY_STAFF': {
       if (!user.firmId || !user.companyId) {
-        throw new Error(`Company user ${user.id} is missing firm_id or company_id.`);
+        throw new Error(`Company user ${user.userId} is missing firm_id or company_id.`);
       }
       const session: CompanySession = {
         kind: 'company',
         role: user.role,
-        userId: user.id,
+        userId: user.userId,
         firmId: user.firmId,
         companyId: user.companyId,
         ...request,

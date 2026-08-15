@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, integer, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, integer, bigint, timestamp, index } from 'drizzle-orm/pg-core';
 import { uuidV7Pk, timestamps, bytea } from './_shared';
 import { accountStatus, userRole, userStatus } from './enums';
 
@@ -34,6 +34,14 @@ export const users = pgTable(
     // company DEK, because a user is not company-scoped data.
     totpSecretEnc: bytea('totp_secret_enc'),
     totpEnabledAt: timestamp('totp_enabled_at', { withTimezone: true }),
+
+    /**
+     * Highest TOTP time-step already accepted for this user. A code is valid
+     * once: replaying one observed over someone's shoulder, or lifted from a
+     * phishing page seconds earlier, fails. The cost is that two reveals inside
+     * the same 30-second window need two different codes.
+     */
+    totpLastCounter: bigint('totp_last_counter', { mode: 'number' }),
 
     status: userStatus('status').notNull().default('pending'),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),

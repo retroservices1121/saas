@@ -28,6 +28,7 @@ const ALLOWED_DB_ROLES: readonly DbRole[] = [
   'app_firm',
   'app_company',
   'app_subject',
+  'app_auth',
 ];
 
 /** Postgres error code for insufficient_privilege. */

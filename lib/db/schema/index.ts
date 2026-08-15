@@ -6,3 +6,4 @@ export * from './workers';
 export * from './documents';
 export * from './audit';
 export { bytea } from './_shared';
+export * from './auth';

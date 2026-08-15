@@ -1,13 +1,158 @@
 {
+  "_translation": {
+    "note": "Spec section 12 requires HUMAN translation for: the consent text, both signature documents, the privacy notice, and every tax ID validation error. Keys under `esign`, `privacy`, and `validation.ssn` / `validation.itin` / `validation.tin` are marked `needsCounselReview` in the Spanish catalogue and must be replaced with copy approved by the client's counsel in English and human-translated to Spanish before launch. Machine translation is not acceptable for those.",
+    "designWidth": "Every screen is designed at Spanish string lengths and tested at 360px."
+  },
+
   "app": {
     "name": "Onboarding",
     "languageSwitcher": "Language",
     "back": "Back",
-    "continue": "Continue"
+    "continue": "Continue",
+    "save": "Save",
+    "cancel": "Cancel",
+    "working": "Working…",
+    "signOut": "Sign out",
+    "none": "None",
+    "notProvided": "Not provided",
+    "of": "of",
+    "step": "Step {current} of {total}"
   },
+
   "landing": {
     "title": "Onboarding platform",
     "subtitle": "Secure intake for accounting firms and the companies they serve.",
-    "status": "Foundation build. Access enforcement is in place; feature work follows."
+    "signIn": "Sign in"
+  },
+
+  "auth": {
+    "signInTitle": "Sign in",
+    "signInSubtitle": "Staff access. Workers and owners use the link they were sent.",
+    "email": "Email address",
+    "password": "Password",
+    "signIn": "Sign in",
+
+    "verifyTitle": "Authentication code",
+    "verifySubtitle": "Enter the six-digit code from your authenticator app.",
+    "totpCode": "Six-digit code",
+    "totpHint": "From your authenticator app.",
+    "verify": "Verify",
+
+    "setupTitle": "Set up your account",
+    "setupSubtitle": "Creating access for {email}.",
+    "setupStep1": "1. Choose a password",
+    "setupStep2": "2. Set up your authenticator",
+    "newPassword": "Password",
+    "passwordHint": "At least 12 characters. Length matters more than symbols — a passphrase is a good choice.",
+    "confirmPassword": "Confirm password",
+    "totpEnrollHint": "Scan this with an authenticator app such as Google Authenticator, 1Password, or Authy, then enter the code it shows.",
+    "manualEntry": "Or enter this key manually:",
+    "totpConfirmHint": "The code your app shows now, to confirm it is set up correctly.",
+    "finishSetup": "Finish setup",
+    "setupComplete": "Your account is ready. Sign in with your new password.",
+    "setupExpiredTitle": "This link is no longer valid",
+    "setupExpiredBody": "Setup links expire after 24 hours and can be used once. Ask whoever invited you to send a new one.",
+
+    "reauthTitle": "Confirm it is you",
+    "reauthHint": "Enter a fresh code from your authenticator app.",
+
+    "errors": {
+      "invalid": "That email address and password do not match an account.",
+      "throttled": "Too many attempts. Try again in a few minutes.",
+      "locked": "This account is locked for {minutes} more minutes after repeated failed sign-ins.",
+      "suspended": "This account has been suspended. Contact your administrator.",
+      "totpFormat": "Enter the six digits from your authenticator app.",
+      "totpInvalid": "That code is not valid. Codes can only be used once — if you just used this one, wait for the next.",
+      "sessionExpired": "That took too long. Sign in again.",
+      "setupInvalid": "This setup link is no longer valid. Ask for a new one.",
+      "forbidden": "You do not have access to that."
+    }
+  },
+
+  "validation": {
+    "ssn": {
+      "length": "A Social Security number has nine digits.",
+      "area": "The first three digits of this number are not issued as Social Security numbers.",
+      "group": "The middle two digits cannot be 00.",
+      "serial": "The last four digits cannot be 0000.",
+      "void": "This number is a well-known example number and was never issued to anyone."
+    },
+    "itin": {
+      "length": "An ITIN has nine digits.",
+      "prefix": "An ITIN always begins with 9.",
+      "group": "The middle two digits are not in a range the IRS issues for ITINs."
+    },
+    "tin": {
+      "required": "Enter your tax ID number.",
+      "looksLikeItin": "This looks like an ITIN, but you selected Social Security number. Please check which one you have.",
+      "looksLikeSsn": "This looks like a Social Security number, but you selected ITIN. Please check which one you have."
+    },
+    "routing": {
+      "required": "Enter the routing number.",
+      "length": "A routing number has nine digits.",
+      "checksum": "That routing number is not valid. Check the digits — one may have been mistyped or transposed."
+    },
+    "account": {
+      "required": "Enter the account number.",
+      "confirmRequired": "Enter the account number again.",
+      "length": "An account number is between 4 and 17 digits.",
+      "mismatch": "The two account numbers do not match."
+    },
+    "ein": {
+      "required": "Enter the EIN.",
+      "length": "An EIN has nine digits."
+    },
+    "dob": {
+      "required": "Enter the date of birth.",
+      "format": "That is not a real date.",
+      "tooYoung": "The date of birth must be at least {min} years ago.",
+      "tooOld": "Please check the year."
+    },
+    "ownership": {
+      "range": "Enter a percentage between 0 and 100.",
+      "totalNot100": "Ownership across all owners adds up to {total}%, not 100%. That may be correct — check that nobody is missing."
+    },
+    "phone": {
+      "required": "Enter a mobile number.",
+      "format": "Enter a ten-digit mobile number."
+    },
+    "email": {
+      "required": "Enter an email address.",
+      "format": "That does not look like an email address."
+    },
+    "postalCode": {
+      "required": "Enter the ZIP code.",
+      "format": "Enter a five-digit ZIP code."
+    },
+    "state": { "unknown": "Choose a state." },
+    "address": { "required": "Enter the street address." },
+    "city": { "required": "Enter the city." },
+    "legalName": { "required": "Enter the legal name." },
+    "displayName": { "required": "Enter a name." },
+    "adminName": { "required": "Enter the administrator's name." },
+    "firstName": { "required": "Enter your first name." },
+    "lastName": { "required": "Enter your last name." },
+    "bankName": { "required": "Enter the name of the bank." },
+    "operatingStates": { "required": "Choose at least one state." },
+    "wc": {
+      "policyNumberRequired": "Enter the policy number.",
+      "expiryRequired": "Enter the expiry date."
+    },
+    "signature": {
+      "nameRequired": "Type your full legal name to sign.",
+      "consentRequired": "You must agree to sign electronically to continue."
+    },
+    "totp": { "format": "Enter the six digits from your authenticator app." },
+    "password": {
+      "required": "Enter your password.",
+      "tooShort": "Use at least 12 characters.",
+      "tooLong": "That password is too long.",
+      "mismatch": "The two passwords do not match."
+    },
+    "reveal": { "reasonTooShort": "Give a reason of at least ten characters." },
+    "export": {
+      "reasonTooShort": "Give a reason of at least ten characters.",
+      "companyRequired": "Choose at least one company."
+    }
   }
 }

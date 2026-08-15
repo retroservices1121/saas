@@ -97,13 +97,19 @@ export async function seedCompany(label: string): Promise<CompanyFixture> {
       values (${grantId}, ${firmId}, ${companyId}, now())
     `;
 
+    // users_totp_pair_ck: a row claiming enrollment must hold a secret. The
+    // value is never verified here — these fixtures exercise RLS, not login —
+    // but the constraint is real and the fixture has to satisfy it.
+    const totpSecret = seal(dataKey.plaintext, 'JBSWY3DPEHPK3PXP', companyId);
+
     await tx`
-      insert into users (id, email, name, role, firm_id, status, totp_enabled_at)
+      insert into users (id, email, name, role, firm_id, status,
+                         totp_secret_enc, totp_enabled_at)
       values
         (${firmAdminUserId}, ${`fa-${tag}@example.test`}, 'Firm Admin', 'FIRM_ADMIN',
-         ${firmId}, 'active', now()),
+         ${firmId}, 'active', ${totpSecret}, now()),
         (${firmStaffUserId}, ${`fs-${tag}@example.test`}, 'Firm Staff', 'FIRM_STAFF',
-         ${firmId}, 'active', now())
+         ${firmId}, 'active', ${totpSecret}, now())
     `;
 
     await tx`
@@ -245,4 +251,126 @@ export async function destroyCompany(f: CompanyFixture): Promise<void> {
 
 export async function closeAdmin(): Promise<void> {
   await admin.end();
+}
+
+// ---------------------------------------------------------------------------
+// Staff auth fixtures
+// ---------------------------------------------------------------------------
+
+import { createHash } from 'node:crypto';
+
+export interface StaffFixture {
+  firmId: string;
+  companyId: string;
+  userId: string;
+  email: string;
+  /** The raw setup-link token. Only its hash is stored, as in production. */
+  setupToken: string;
+}
+
+/**
+ * A firm user in `pending` state holding a live setup token — the state
+ * `createCompany` and firm-staff invitation leave a new user in.
+ *
+ * Seeded on the admin connection like every other fixture, so that a bug in the
+ * scoped path cannot quietly produce an empty fixture and a green test.
+ */
+export async function seedPendingStaffUser(
+  role: 'FIRM_ADMIN' | 'FIRM_STAFF' | 'COMPANY_ADMIN' = 'FIRM_ADMIN',
+): Promise<StaffFixture> {
+  const tag = runTag();
+  const firmId = randomUUID();
+  const companyId = randomUUID();
+  const userId = randomUUID();
+  const email = `staff-${tag}@example.test`;
+  const setupToken = randomBytes(32).toString('base64url');
+
+  const dataKey = await getKms().generateDataKey({ companyId });
+
+  await admin.begin(async (tx) => {
+    await tx`
+      insert into firms (id, name, status)
+      values (${firmId}, ${`Firm ${tag}`}, 'active')
+    `;
+    await tx`
+      insert into companies (
+        id, firm_id, legal_name, dek_ciphertext, dek_key_id, wc_status, status
+      ) values (
+        ${companyId}, ${firmId}, ${`Company ${tag}`},
+        ${dataKey.ciphertext}, ${dataKey.keyId}, 'PENDING', 'active'
+      )
+    `;
+    await tx`
+      insert into firm_company_grants (firm_id, company_id, granted_at)
+      values (${firmId}, ${companyId}, now())
+    `;
+    await tx`
+      insert into users (id, email, name, role, firm_id, company_id, status)
+      values (
+        ${userId}, ${email}, 'Test Staff', ${role}, ${firmId},
+        ${role === 'COMPANY_ADMIN' ? companyId : null}, 'pending'
+      )
+    `;
+    await tx`
+      insert into user_setup_tokens (user_id, token_hash, expires_at)
+      values (
+        ${userId},
+        ${createHash('sha256').update(setupToken).digest('hex')},
+        now() + interval '24 hours'
+      )
+    `;
+  });
+
+  return { firmId, companyId, userId, email, setupToken };
+}
+
+export async function destroyStaffFixture(f: StaffFixture): Promise<void> {
+  await admin.begin(async (tx) => {
+    await tx`delete from audit_log where firm_id = ${f.firmId}`;
+    await tx`delete from login_attempts where identifier = ${f.email}`;
+    await tx`delete from staff_sessions where user_id = ${f.userId}`;
+    await tx`delete from user_setup_tokens where user_id = ${f.userId}`;
+    await tx`delete from firm_company_grants where company_id = ${f.companyId}`;
+    await tx`delete from users where firm_id = ${f.firmId}`;
+    await tx`delete from companies where id = ${f.companyId}`;
+    await tx`delete from firms where id = ${f.firmId}`;
+  });
+}
+
+/** Row state a test needs to assert on directly. */
+export async function readUserAuthState(userId: string): Promise<{
+  status: string;
+  failedLoginCount: number;
+  lockedUntil: Date | null;
+  totpEnabledAt: Date | null;
+  totpLastCounter: number | null;
+}> {
+  const rows = await admin<
+    {
+      status: string;
+      failed_login_count: number;
+      locked_until: Date | null;
+      totp_enabled_at: Date | null;
+      totp_last_counter: string | null;
+    }[]
+  >`
+    select status, failed_login_count, locked_until, totp_enabled_at, totp_last_counter
+    from users where id = ${userId}
+  `;
+  const row = rows[0]!;
+  return {
+    status: row.status,
+    failedLoginCount: row.failed_login_count,
+    lockedUntil: row.locked_until,
+    totpEnabledAt: row.totp_enabled_at,
+    totpLastCounter: row.totp_last_counter === null ? null : Number(row.totp_last_counter),
+  };
+}
+
+export async function countAuditRows(firmId: string, action: string): Promise<number> {
+  const rows = await admin<{ n: string }[]>`
+    select count(*)::text as n from audit_log
+    where firm_id = ${firmId} and action = ${action}::audit_action
+  `;
+  return Number(rows[0]?.n ?? 0);
 }

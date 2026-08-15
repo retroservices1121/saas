@@ -2,21 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light dark;
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  /*
+   * Spanish runs 20-30% longer than English (spec section 12) and every screen
+   * is designed at that width, so nothing may rely on a label fitting on one
+   * line. Wrapping is the default; truncation is opt-in.
+   */
+  body {
+    text-wrap: pretty;
+  }
+
+  /*
+   * Form controls on a phone: 16px is the threshold below which iOS Safari
+   * zooms the viewport on focus, which on a one-question-per-screen flow throws
+   * away the layout at the exact moment someone starts typing.
+   */
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+  }
+
+  /* A visible focus ring on every interactive element, including for pointer
+     users. Removing it is a common default and it strands keyboard navigation. */
+  :focus-visible {
+    outline: 2px solid theme('colors.blue.600');
+    outline-offset: 2px;
+  }
 }
 
-/*
- * The worker form is used one-handed, outdoors, on whatever phone the person
- * already owns. 16px is the floor because iOS Safari zooms the viewport on
- * focus for anything smaller, which breaks a one-question-per-screen layout.
- */
-html {
-  -webkit-text-size-adjust: 100%;
-}
-
-input,
-select,
-textarea {
-  font-size: 16px;
+@layer utilities {
+  /*
+   * Sensitive values are rendered in a tabular font so that a revealed tax ID
+   * is read digit by digit rather than as a shape, and so the 30-second
+   * countdown does not reflow as it ticks.
+   */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
 }

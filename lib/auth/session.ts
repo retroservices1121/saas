@@ -12,10 +12,22 @@ export type StaffRole =
 
 export type SubjectRole = 'OWNER' | 'WORKER';
 
-export type ActorRole = StaffRole | SubjectRole;
+/**
+ * Nobody, yet. The login and invite-lookup paths need to read a row in order to
+ * decide who the caller is, which is a question that cannot be answered by a
+ * session that already knows.
+ */
+export type AnonymousRole = 'ANONYMOUS';
+
+export type ActorRole = StaffRole | SubjectRole | AnonymousRole;
 
 /** Maps an actor role onto the Postgres role the transaction runs as. */
-export type DbRole = 'app_platform' | 'app_firm' | 'app_company' | 'app_subject';
+export type DbRole =
+  | 'app_platform'
+  | 'app_firm'
+  | 'app_company'
+  | 'app_subject'
+  | 'app_auth';
 
 interface BaseSession {
   ip?: string | undefined;
@@ -62,7 +74,32 @@ export interface SubjectSession extends BaseSession {
   inviteId: string;
 }
 
-export type Session = PlatformSession | FirmSession | CompanySession | SubjectSession;
+/**
+ * The pre-authentication scope. It exists so that even the login lookup runs
+ * through withScope rather than around it — an unscoped escape hatch for "just
+ * this one query" is how layer 2 stops being a boundary.
+ *
+ * `app_auth` holds nothing but what a login needs: the users table, the session
+ * and setup-token tables, and INSERT on the audit log. It cannot name a company,
+ * a worker, or an owner at all.
+ */
+export interface AnonymousSession extends BaseSession {
+  kind: 'anonymous';
+  role: 'ANONYMOUS';
+}
+
+export type Session =
+  | PlatformSession
+  | FirmSession
+  | CompanySession
+  | SubjectSession
+  | AnonymousSession;
+
+export function anonymousSession(
+  request: { ip?: string | undefined; userAgent?: string | undefined } = {},
+): AnonymousSession {
+  return { kind: 'anonymous', role: 'ANONYMOUS', ...request };
+}
 
 export function isFirmSession(s: Session): s is FirmSession {
   return s.kind === 'firm';
@@ -89,6 +126,8 @@ export function scopeOf(session: Session): string[] {
       return [session.companyId];
     case 'subject':
       return [session.companyId];
+    case 'anonymous':
+      return [];
   }
 }
 
@@ -102,11 +141,13 @@ export function dbRoleOf(session: Session): DbRole {
       return 'app_company';
     case 'subject':
       return 'app_subject';
+    case 'anonymous':
+      return 'app_auth';
   }
 }
 
 export function actorUserIdOf(session: Session): string | null {
-  return session.kind === 'subject' ? null : session.userId;
+  return session.kind === 'subject' || session.kind === 'anonymous' ? null : session.userId;
 }
 
 export function firmIdOf(session: Session): string | null {

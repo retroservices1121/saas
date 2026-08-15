@@ -1,5 +1,5 @@
 import { getRequestConfig } from 'next-intl/server';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 export const LOCALES = ['en', 'es'] as const;
 export type Locale = (typeof LOCALES)[number];
@@ -33,12 +33,23 @@ export function negotiateLocale(acceptLanguage: string | null): Locale {
   return DEFAULT_LOCALE;
 }
 
+/** Set by the header switcher, which is present on every screen (spec section 12). */
+export const LOCALE_COOKIE = 'onb_locale';
+
+/**
+ * Resolution order (spec section 12): the explicit choice, then
+ * Accept-Language, then English.
+ *
+ * A subject's stored `preferred_locale` overrides both, but not here — that
+ * override belongs to the layout that owns the invite session, because this
+ * function has only the request and does not know who is on the other end of
+ * it yet.
+ */
 export default getRequestConfig(async () => {
-  const h = await headers();
-  const cookieLocale = h.get('x-locale');
-  const locale = isLocale(cookieLocale)
-    ? cookieLocale
-    : negotiateLocale(h.get('accept-language'));
+  const [h, c] = await Promise.all([headers(), cookies()]);
+
+  const chosen = c.get(LOCALE_COOKIE)?.value;
+  const locale = isLocale(chosen) ? chosen : negotiateLocale(h.get('accept-language'));
 
   return {
     locale,

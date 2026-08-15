@@ -414,10 +414,15 @@ create policy exports_all on exports
   );
 
 -- --- users / firms ---------------------------------------------------------
+-- ANONYMOUS is the login path. It has to be able to find a user by email
+-- address before it knows who that user is, so it reads the whole table — and
+-- holds column-level UPDATE on the login bookkeeping columns only (901), so it
+-- cannot change anyone's role, firm, or company on the way past.
 drop policy if exists users_select on users;
 create policy users_select on users
   for select using (
     app.actor_role() = 'PLATFORM_ADMIN'
+    or app.actor_role() = 'ANONYMOUS'
     or (app.is_firm() and firm_id = nullif(current_setting('app.firm_id', true), '')::uuid)
     or (app.is_company() and app.can_read_company(company_id))
     or id = app.actor_user_id()
@@ -426,11 +431,11 @@ create policy users_select on users
 drop policy if exists users_write on users;
 create policy users_write on users
   for all using (
-    app.actor_role() in ('PLATFORM_ADMIN', 'FIRM_ADMIN')
+    app.actor_role() in ('PLATFORM_ADMIN', 'FIRM_ADMIN', 'ANONYMOUS')
     or id = app.actor_user_id()
   )
   with check (
-    app.actor_role() in ('PLATFORM_ADMIN', 'FIRM_ADMIN')
+    app.actor_role() in ('PLATFORM_ADMIN', 'FIRM_ADMIN', 'ANONYMOUS')
     or id = app.actor_user_id()
   );
 
@@ -456,9 +461,30 @@ create policy firms_write on firms
 -- column dimension.
 --
 -- Start from nothing and add back deliberately.
+--
+-- The revoke names its tables explicitly rather than saying ALL TABLES. This
+-- file is re-runnable by design — every statement in it is idempotent — and a
+-- blanket revoke would strip the grants that 901_auth.sql issues on the
+-- authentication tables every time this one was re-applied, silently, with the
+-- symptom appearing at the next login rather than at migration time.
 -- ===========================================================================
 
-revoke all on all tables in schema public from app_platform, app_firm, app_company, app_subject;
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'firms','users','companies','firm_company_grants','company_owners',
+    'workers','worker_records','signatures','documents','notes','reminders',
+    'invites','audit_log','exports'
+  ]
+  loop
+    execute format(
+      'revoke all on %I from app_platform, app_firm, app_company, app_subject', t
+    );
+  end loop;
+end
+$$;
+
 revoke all on all sequences in schema public from app_platform, app_firm, app_company, app_subject;
 
 -- --- app_firm: the only role that reads sensitive data ---------------------
