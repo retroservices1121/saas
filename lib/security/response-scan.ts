@@ -17,6 +17,10 @@
  * ciphertext by definition and has no business in a response at all.
  */
 
+import { keyMentions, keyWords } from './field-names';
+
+export { keyWords };
+
 /** Key words that may never appear in a company-scoped response. */
 const FORBIDDEN_WORDS = new Set([
   'tin',
@@ -46,16 +50,6 @@ export interface ScanFinding {
   reason: string;
 }
 
-/** Splits `tinLast4`, `tin_last4`, and `TINLast4` alike into lowercase words. */
-export function keyWords(key: string): string[] {
-  return key
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map((w) => w.toLowerCase());
-}
-
 export function scanForSensitiveFields(value: unknown, path = '$'): ScanFinding[] {
   const findings: ScanFinding[] = [];
   walk(value, path, findings, 0);
@@ -82,8 +76,7 @@ function walk(value: unknown, path: string, out: ScanFinding[], depth: number): 
     const childPath = `${path}.${key}`;
 
     if (!ALLOWED_KEYS.has(key)) {
-      const words = keyWords(key);
-      const hit = words.find((w) => FORBIDDEN_WORDS.has(w));
+      const hit = keyMentions(key, FORBIDDEN_WORDS);
       if (hit) {
         out.push({ path: childPath, reason: `field name contains "${hit}"` });
       }

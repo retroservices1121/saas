@@ -20,6 +20,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@noble/hashes": "^2.3.0",
     "drizzle-orm": "^0.38.4",
     "next": "15.1.6",
     "next-intl": "^3.26.3",

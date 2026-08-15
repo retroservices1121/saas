@@ -9,10 +9,36 @@
  * different claims, and the gap between them is where breaches live.
  */
 
+import { keyMentions } from './field-names';
+
 const REDACTED = '[redacted]';
 
-/** Field names whose values are replaced wholesale, at any depth. */
-const SENSITIVE_KEY = /(^|[_.])(tin|ssn|itin|account|acct|routing|aba|dek|password|secret|token)([_.]|$)|_enc$|_enc[A-Z]/i;
+/**
+ * Field names whose values are replaced wholesale, at any depth.
+ *
+ * Matched word-by-word rather than by a regex over the raw key. An earlier
+ * pattern anchored the words on `_` and `.` boundaries, which meant `tin_enc`
+ * was caught and `tinEnc` was not — and every value this codebase logs comes
+ * out of Drizzle in camelCase.
+ */
+const SENSITIVE_WORDS = new Set([
+  'tin',
+  'ssn',
+  'itin',
+  'account',
+  'acct',
+  'routing',
+  'aba',
+  'enc',
+  'dek',
+  'password',
+  'secret',
+  'token',
+  'totp',
+]);
+
+/** `accountStatus` is a state machine, not an account number. */
+const ALLOWED_KEYS = new Set(['accountStatus', 'account_status']);
 
 /**
  * A bare 9-digit run, or an SSN written with separators. Deliberately broad:
@@ -47,7 +73,8 @@ export function redact(value: unknown, depth = 0): unknown {
   if (typeof value === 'object') {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = SENSITIVE_KEY.test(k) ? REDACTED : redact(v, depth + 1);
+      const sensitive = !ALLOWED_KEYS.has(k) && keyMentions(k, SENSITIVE_WORDS) !== undefined;
+      out[k] = sensitive ? REDACTED : redact(v, depth + 1);
     }
     return out;
   }
