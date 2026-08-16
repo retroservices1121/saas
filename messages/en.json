@@ -347,5 +347,377 @@
       "dobWrong": "That does not match. Please check the date and try again.",
       "dobWrongRemaining": "That does not match. You have {remaining} attempts left before this link is locked for an hour."
     }
+  },
+  "roles": {
+    "PLATFORM_ADMIN": "Platform admin",
+    "FIRM_ADMIN": "Firm admin",
+    "FIRM_STAFF": "Firm staff",
+    "COMPANY_ADMIN": "Company admin",
+    "COMPANY_STAFF": "Company staff",
+    "OWNER": "Owner",
+    "WORKER": "Worker",
+    "ANONYMOUS": "System"
+  },
+  "status": {
+    "INVITED": "Invited",
+    "IN_PROGRESS": "In progress",
+    "SUBMITTED": "Submitted",
+    "NEEDS_ATTENTION": "Needs attention",
+    "ARCHIVED": "Archived",
+    "PENDING": "Not started",
+    "IN_REVIEW": "In progress",
+    "COMPLETE": "Complete"
+  },
+  "workerType": {
+    "EMPLOYEE": "Employee",
+    "SUBCONTRACTOR": "Subcontractor"
+  },
+  "payType": {
+    "HOURLY": "Hourly",
+    "SALARY": "Salary"
+  },
+  "payFrequency": {
+    "WEEKLY": "Weekly",
+    "BIWEEKLY": "Every two weeks",
+    "SEMIMONTHLY": "Twice a month",
+    "MONTHLY": "Monthly"
+  },
+  "wc": {
+    "POLICY": "Policy in force",
+    "EXEMPT": "Exempt",
+    "PENDING": "Not yet resolved"
+  },
+  "sensitivity": {
+    "COMPANY_VISIBLE": "Company can see",
+    "FIRM_ONLY": "Firm only"
+  },
+  "submittedVia": {
+    "WORKER_FORM": "Submitted by the worker",
+    "FIRM_ENTRY": "Corrected by the firm"
+  },
+  "docType": {
+    "ARTICLES_OF_INCORPORATION": "Articles of incorporation",
+    "WC_POLICY": "Workers' comp policy",
+    "WC_EXEMPTION": "Workers' comp exemption",
+    "DISABILITY_POLICY": "Disability policy",
+    "VOIDED_CHECK": "Voided check",
+    "ID_DOCUMENT": "ID document",
+    "W9": "W-9",
+    "W4": "W-4",
+    "I9": "I-9",
+    "SIGNED_AUTHORIZATION": "Signed authorization",
+    "OTHER": "Other"
+  },
+  "audit": {
+    "LOGIN_SUCCESS": "Signed in",
+    "LOGIN_FAILURE": "Failed sign-in",
+    "GRANT_CREATED": "Access granted",
+    "GRANT_REVOKED": "Access revoked",
+    "COMPANY_CREATED": "Company created",
+    "OWNER_INVITED": "Owner invited",
+    "WORKER_CREATED": "Worker added",
+    "INVITE_SENT": "Invite sent",
+    "INVITE_OPENED": "Invite opened",
+    "INVITE_VERIFY_FAILED": "Verification failed",
+    "FORM_SUBMITTED": "Form submitted",
+    "SIGNATURE_CAPTURED": "Document signed",
+    "RECORD_CORRECTED": "Record corrected",
+    "REVEAL_TIN": "Tax ID revealed",
+    "REVEAL_BANK": "Bank details revealed",
+    "DOCUMENT_VIEWED": "Document opened",
+    "DOCUMENT_UPLOADED": "Document uploaded",
+    "DOCUMENT_DELETED": "Document deleted",
+    "EXPORT_CREATED": "Export created",
+    "EXPORT_DOWNLOADED": "Export downloaded",
+    "REMINDER_SENT": "Reminder sent",
+    "RECORD_PURGED": "Record purged",
+    "SECURITY_VIOLATION": "Security violation"
+  },
+  "checklist": {
+    "profileComplete": "Company profile complete",
+    "bankingComplete": "Company bank details on file",
+    "ownersSubmitted": "All owners have submitted",
+    "articlesUploaded": "Articles of incorporation uploaded",
+    "wcResolved": "Workers' compensation resolved",
+    "certificationSigned": "Company certification signed",
+    "done": "(done)",
+    "todo": "(outstanding)"
+  },
+  "firm": {
+    "companies": {
+      "title": "Client companies",
+      "count": "{count} companies",
+      "add": "Add a company",
+      "empty": "No companies yet. Add one to get started.",
+      "company": "Company",
+      "status": "Onboarding",
+      "owners": "Owners",
+      "workers": "Workers",
+      "dba": "trading as {name}",
+      "outstanding": "{pending} of {total} outstanding",
+      "allIn": "{total} complete"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "owners": "Owners",
+      "workers": "Workers",
+      "documents": "Documents",
+      "notes": "Notes",
+      "activity": "Activity"
+    },
+    "overview": {
+      "details": "Company details",
+      "checklist": "Onboarding",
+      "ein": "EIN",
+      "address": "Address",
+      "contact": "Contact email",
+      "phone": "Contact phone",
+      "operatingStates": "Operating states",
+      "wcStatus": "Workers' comp",
+      "wcPolicy": "Policy number",
+      "wcExpires": "Expires",
+      "bank": "Bank",
+      "bankAccount": "Account"
+    },
+    "new": {
+      "title": "Add a company",
+      "companySection": "Company",
+      "adminSection": "Company administrator",
+      "adminHint": "They will be emailed a link, valid for 24 hours and usable once, to choose a password and enrol an authenticator app. You never set a password for them.",
+      "legalName": "Legal name",
+      "dbaName": "Trading name",
+      "ein": "EIN",
+      "einHint": "Nine digits.",
+      "address": "Street address",
+      "city": "City",
+      "state": "State",
+      "postalCode": "ZIP code",
+      "contactEmail": "Company contact email",
+      "contactPhone": "Company phone",
+      "adminName": "Administrator name",
+      "adminEmail": "Administrator email",
+      "submit": "Create company"
+    },
+    "workers": {
+      "title": "{count} workers",
+      "empty": "No workers have been added yet.",
+      "name": "Name",
+      "type": "Type",
+      "status": "Status",
+      "tin": "Tax ID",
+      "account": "Account"
+    },
+    "worker": {
+      "payroll": "Payroll",
+      "payrollHint": "Entered by the company.",
+      "personal": "Personal and banking",
+      "personalHint": "Supplied by the worker. The company never sees this.",
+      "notSubmitted": "This worker has not submitted their information yet.",
+      "jobTitle": "Job title",
+      "startDate": "Start date",
+      "workState": "Work state",
+      "type": "Type",
+      "legalName": "Legal name",
+      "dob": "Date of birth",
+      "address": "Address",
+      "email": "Email",
+      "phone": "Phone",
+      "bank": "Bank",
+      "routing": "Routing number",
+      "account": "Account number",
+      "tin": {
+        "SSN": "Social Security Number",
+        "ITIN": "ITIN"
+      },
+      "history": "Version history",
+      "historyHint": "Corrections write a new version and preserve the old one.",
+      "current": "Current",
+      "noVersions": "No submissions yet.",
+      "documents": "Documents",
+      "noDocuments": "No documents for this worker."
+    },
+    "owners": {
+      "title": "{count} owners",
+      "empty": "No owners have been invited yet.",
+      "name": "Name",
+      "percent": "Ownership",
+      "status": "Status",
+      "tin": "Tax ID",
+      "notYet": "Not submitted"
+    },
+    "documents": {
+      "title": "{count} documents",
+      "empty": "No documents yet.",
+      "type": "Type",
+      "label": "Label",
+      "visibility": "Visibility",
+      "uploadedBy": "Uploaded by",
+      "size": "Size"
+    },
+    "notes": {
+      "title": "{count} notes",
+      "empty": "No notes yet.",
+      "firmOnly": "Firm only"
+    },
+    "activity": {
+      "title": "Activity",
+      "when": "When",
+      "action": "Action",
+      "actor": "Actor",
+      "reason": "Reason",
+      "empty": "Nothing recorded yet."
+    },
+    "reveal": {
+      "button": "Reveal",
+      "title": "Reveal {field}",
+      "reason": "Why do you need to see this?",
+      "reasonHint": "At least ten characters. This is recorded permanently against your name.",
+      "code": "Authentication code",
+      "codeHint": "A fresh six-digit code from your authenticator app.",
+      "confirm": "Reveal",
+      "hiding": "hides in {seconds}s",
+      "hideNow": "Hide now",
+      "notice": "The value will be shown for 30 seconds and then hidden again."
+    },
+    "errors": {
+      "check": "Please check the highlighted fields.",
+      "notFound": "That record could not be found.",
+      "noValue": "There is no value recorded for that field."
+    }
+  },
+  "company": {
+    "dashboard": {
+      "title": "Onboarding",
+      "checklist": "What is left to do",
+      "go": "Open",
+      "allDone": "Everything is complete. Your accounting firm has what it needs.",
+      "remaining": "{count} items still to complete.",
+      "workers": "Workers",
+      "owners": "Owners",
+      "view": "View",
+      "workersSubmitted": "{count} have submitted their information"
+    },
+    "workers": {
+      "title": "Workers",
+      "invite": "Invite a worker",
+      "empty": "No workers yet.",
+      "name": "Name",
+      "jobTitle": "Job title",
+      "type": "Type",
+      "startDate": "Start date",
+      "status": "Status",
+      "privacyNote": "You will see whether each person has finished, and nothing else. Their legal name, date of birth, tax ID and bank details go directly to your accounting firm and are never shown here — including the last four digits."
+    },
+    "inviteWorker": {
+      "title": "Invite a worker",
+      "intro": "They will receive a text message with a link. They enter their own personal and banking information; you will only see whether they have finished.",
+      "person": "The person",
+      "personHint": "Enough to send them a text message.",
+      "displayName": "Name",
+      "displayNameHint": "How you refer to them. It does not have to be their full legal name.",
+      "type": "Worker type",
+      "language": "Language",
+      "languageHint": "The language their form and text messages will be in.",
+      "phone": "Mobile number",
+      "phoneHint": "The link is sent here.",
+      "payroll": "Payroll details",
+      "payrollHint": "You enter these. The worker does not see or change them.",
+      "jobTitle": "Job title",
+      "startDate": "Start date",
+      "payType": "Pay type",
+      "payFrequency": "Pay frequency",
+      "workState": "Work state",
+      "submit": "Send the invite"
+    },
+    "owners": {
+      "title": "Owners",
+      "invite": "Invite an owner",
+      "empty": "No owners yet.",
+      "back": "Owners",
+      "name": "Name",
+      "percent": "Ownership",
+      "status": "Status",
+      "privacyNote": "Each owner supplies their own Social Security number or ITIN through their own link, including you. You will see whether they have submitted, and nothing else."
+    },
+    "inviteOwner": {
+      "title": "Invite an owner",
+      "intro": "They will receive a text message with a link and supply their own name, date of birth, address and tax ID. If you are an owner yourself, invite yourself here — the process is the same.",
+      "displayName": "Name",
+      "displayNameHint": "How you refer to them.",
+      "percent": "Ownership percentage",
+      "percentHint": "Optional. Warned about, not enforced, if the total is not 100.",
+      "phone": "Mobile number",
+      "phoneHint": "The link is sent here.",
+      "language": "Language",
+      "submit": "Send the invite"
+    },
+    "profile": {
+      "title": "Company profile",
+      "saved": "Saved.",
+      "identity": "Identity",
+      "legalName": "Legal name",
+      "dbaName": "Trading name",
+      "ein": "EIN",
+      "address": "Street address",
+      "address2": "Suite or floor",
+      "city": "City",
+      "state": "State",
+      "postalCode": "ZIP code",
+      "contactEmail": "Contact email",
+      "contactPhone": "Contact phone",
+      "operating": "Operating states",
+      "operatingHint": "Every state you have workers in. Workers' compensation and state tax rules differ in each.",
+      "insurance": "Insurance",
+      "wcStatus": "Workers' compensation",
+      "wcPolicy": "Policy number",
+      "wcCarrier": "Carrier",
+      "wcExpires": "Expires",
+      "exemptHint": "Upload your exemption document on the Documents page. Exemption rules and the acceptable proof vary by state.",
+      "disabilityPolicy": "Disability policy number",
+      "disabilityCarrier": "Disability carrier",
+      "disabilityExpires": "Disability expires"
+    },
+    "banking": {
+      "title": "Company bank account",
+      "intro": "This is your company's own account. It is stored encrypted, shown masked, and revealing it is recorded.",
+      "onFile": "On file",
+      "add": "Add bank details",
+      "replace": "Replace bank details",
+      "hint": "Enter the account your company uses. This is not any worker's account.",
+      "bankName": "Bank name",
+      "routing": "Routing number",
+      "routingHint": "Nine digits.",
+      "account": "Account number",
+      "accountConfirm": "Account number again"
+    },
+    "documents": {
+      "title": "Documents",
+      "intro": "Articles of incorporation, insurance policies, and anything else your accounting firm has asked for.",
+      "upload": "Upload a document",
+      "type": "Document type",
+      "label": "Description",
+      "labelHint": "Optional. What is this file?",
+      "file": "File",
+      "fileHint": "PDF or image, up to 25 MB.",
+      "uploadSubmit": "Upload",
+      "uploadedOk": "Uploaded.",
+      "uploaded": "{count} documents",
+      "empty": "No documents yet."
+    },
+    "certify": {
+      "nameHint": "Your name on file is {expected}."
+    },
+    "errors": {
+      "check": "Please check the highlighted fields.",
+      "noValue": "There is nothing recorded for that field.",
+      "revealFailed": "That could not be revealed."
+    }
+  },
+  "documents": {
+    "errors": {
+      "type": "That file type is not accepted. Use a PDF or an image.",
+      "empty": "Choose a file to upload.",
+      "tooLarge": "That file is too large. The limit is 25 MB."
+    }
   }
 }

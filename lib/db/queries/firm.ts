@@ -411,3 +411,25 @@ export async function listAuditForCompany(
       .limit(limit),
   );
 }
+
+/**
+ * Notes as the firm sees them: everything, including the FIRM_ONLY ones a
+ * worker wrote. That asymmetry is the point of the visibility column.
+ */
+export async function listNotesForFirm(session: FirmSession, companyId: string) {
+  return withScope(session, async (db) =>
+    db
+      .select({
+        id: schema.notes.id,
+        body: schema.notes.body,
+        authorRole: schema.notes.authorRole,
+        visibility: schema.notes.visibility,
+        subjectType: schema.notes.subjectType,
+        subjectId: schema.notes.subjectId,
+        createdAt: schema.notes.createdAt,
+      })
+      .from(schema.notes)
+      .where(eq(schema.notes.companyId, companyId))
+      .orderBy(desc(schema.notes.createdAt)),
+  );
+}

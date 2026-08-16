@@ -353,5 +353,377 @@
       "dobWrong": "No coincide. Verifique la fecha e inténtelo de nuevo.",
       "dobWrongRemaining": "No coincide. Le quedan {remaining} intentos antes de que este enlace se bloquee durante una hora."
     }
+  },
+  "roles": {
+    "PLATFORM_ADMIN": "Administrador de plataforma",
+    "FIRM_ADMIN": "Administrador del despacho",
+    "FIRM_STAFF": "Personal del despacho",
+    "COMPANY_ADMIN": "Administrador de la empresa",
+    "COMPANY_STAFF": "Personal de la empresa",
+    "OWNER": "Propietario",
+    "WORKER": "Trabajador",
+    "ANONYMOUS": "Sistema"
+  },
+  "status": {
+    "INVITED": "Invitado",
+    "IN_PROGRESS": "En curso",
+    "SUBMITTED": "Enviado",
+    "NEEDS_ATTENTION": "Requiere atención",
+    "ARCHIVED": "Archivado",
+    "PENDING": "Sin empezar",
+    "IN_REVIEW": "En curso",
+    "COMPLETE": "Completo"
+  },
+  "workerType": {
+    "EMPLOYEE": "Empleado",
+    "SUBCONTRACTOR": "Subcontratista"
+  },
+  "payType": {
+    "HOURLY": "Por hora",
+    "SALARY": "Salario"
+  },
+  "payFrequency": {
+    "WEEKLY": "Semanal",
+    "BIWEEKLY": "Cada dos semanas",
+    "SEMIMONTHLY": "Dos veces al mes",
+    "MONTHLY": "Mensual"
+  },
+  "wc": {
+    "POLICY": "Póliza vigente",
+    "EXEMPT": "Exento",
+    "PENDING": "Aún sin resolver"
+  },
+  "sensitivity": {
+    "COMPANY_VISIBLE": "La empresa puede verlo",
+    "FIRM_ONLY": "Solo el despacho"
+  },
+  "submittedVia": {
+    "WORKER_FORM": "Enviado por el trabajador",
+    "FIRM_ENTRY": "Corregido por el despacho"
+  },
+  "docType": {
+    "ARTICLES_OF_INCORPORATION": "Acta constitutiva",
+    "WC_POLICY": "Póliza de compensación laboral",
+    "WC_EXEMPTION": "Exención de compensación laboral",
+    "DISABILITY_POLICY": "Póliza de incapacidad",
+    "VOIDED_CHECK": "Cheque anulado",
+    "ID_DOCUMENT": "Documento de identidad",
+    "W9": "W-9",
+    "W4": "W-4",
+    "I9": "I-9",
+    "SIGNED_AUTHORIZATION": "Autorización firmada",
+    "OTHER": "Otro"
+  },
+  "audit": {
+    "LOGIN_SUCCESS": "Sesión iniciada",
+    "LOGIN_FAILURE": "Inicio de sesión fallido",
+    "GRANT_CREATED": "Acceso concedido",
+    "GRANT_REVOKED": "Acceso revocado",
+    "COMPANY_CREATED": "Empresa creada",
+    "OWNER_INVITED": "Propietario invitado",
+    "WORKER_CREATED": "Trabajador añadido",
+    "INVITE_SENT": "Invitación enviada",
+    "INVITE_OPENED": "Invitación abierta",
+    "INVITE_VERIFY_FAILED": "Verificación fallida",
+    "FORM_SUBMITTED": "Formulario enviado",
+    "SIGNATURE_CAPTURED": "Documento firmado",
+    "RECORD_CORRECTED": "Registro corregido",
+    "REVEAL_TIN": "Identificación fiscal revelada",
+    "REVEAL_BANK": "Datos bancarios revelados",
+    "DOCUMENT_VIEWED": "Documento abierto",
+    "DOCUMENT_UPLOADED": "Documento subido",
+    "DOCUMENT_DELETED": "Documento eliminado",
+    "EXPORT_CREATED": "Exportación creada",
+    "EXPORT_DOWNLOADED": "Exportación descargada",
+    "REMINDER_SENT": "Recordatorio enviado",
+    "RECORD_PURGED": "Registro depurado",
+    "SECURITY_VIOLATION": "Violación de seguridad"
+  },
+  "checklist": {
+    "profileComplete": "Perfil de la empresa completo",
+    "bankingComplete": "Datos bancarios registrados",
+    "ownersSubmitted": "Todos los propietarios han enviado sus datos",
+    "articlesUploaded": "Acta constitutiva subida",
+    "wcResolved": "Compensación laboral resuelta",
+    "certificationSigned": "Certificación de la empresa firmada",
+    "done": "(hecho)",
+    "todo": "(pendiente)"
+  },
+  "firm": {
+    "companies": {
+      "title": "Empresas clientes",
+      "count": "{count} empresas",
+      "add": "Añadir una empresa",
+      "empty": "Todavía no hay empresas. Añada una para empezar.",
+      "company": "Empresa",
+      "status": "Incorporación",
+      "owners": "Propietarios",
+      "workers": "Trabajadores",
+      "dba": "opera como {name}",
+      "outstanding": "{pending} de {total} pendientes",
+      "allIn": "{total} completos"
+    },
+    "tabs": {
+      "overview": "Resumen",
+      "owners": "Propietarios",
+      "workers": "Trabajadores",
+      "documents": "Documentos",
+      "notes": "Notas",
+      "activity": "Actividad"
+    },
+    "overview": {
+      "details": "Datos de la empresa",
+      "checklist": "Incorporación",
+      "ein": "EIN",
+      "address": "Dirección",
+      "contact": "Correo de contacto",
+      "phone": "Teléfono de contacto",
+      "operatingStates": "Estados donde opera",
+      "wcStatus": "Compensación laboral",
+      "wcPolicy": "Número de póliza",
+      "wcExpires": "Vence",
+      "bank": "Banco",
+      "bankAccount": "Cuenta"
+    },
+    "new": {
+      "title": "Añadir una empresa",
+      "companySection": "Empresa",
+      "adminSection": "Administrador de la empresa",
+      "adminHint": "Se le enviará por correo un enlace, válido 24 horas y de un solo uso, para elegir una contraseña e inscribir una aplicación de autenticación. Usted nunca establece su contraseña.",
+      "legalName": "Razón social",
+      "dbaName": "Nombre comercial",
+      "ein": "EIN",
+      "einHint": "Nueve dígitos.",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "state": "Estado",
+      "postalCode": "Código postal",
+      "contactEmail": "Correo de contacto de la empresa",
+      "contactPhone": "Teléfono de la empresa",
+      "adminName": "Nombre del administrador",
+      "adminEmail": "Correo del administrador",
+      "submit": "Crear empresa"
+    },
+    "workers": {
+      "title": "{count} trabajadores",
+      "empty": "Todavía no se ha añadido ningún trabajador.",
+      "name": "Nombre",
+      "type": "Tipo",
+      "status": "Estado",
+      "tin": "Id. fiscal",
+      "account": "Cuenta"
+    },
+    "worker": {
+      "payroll": "Nómina",
+      "payrollHint": "Introducido por la empresa.",
+      "personal": "Datos personales y bancarios",
+      "personalHint": "Proporcionados por el trabajador. La empresa nunca ve esto.",
+      "notSubmitted": "Este trabajador aún no ha enviado su información.",
+      "jobTitle": "Puesto",
+      "startDate": "Fecha de inicio",
+      "workState": "Estado de trabajo",
+      "type": "Tipo",
+      "legalName": "Nombre legal",
+      "dob": "Fecha de nacimiento",
+      "address": "Dirección",
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "bank": "Banco",
+      "routing": "Número de ruta",
+      "account": "Número de cuenta",
+      "tin": {
+        "SSN": "Número de Seguro Social",
+        "ITIN": "ITIN"
+      },
+      "history": "Historial de versiones",
+      "historyHint": "Las correcciones crean una versión nueva y conservan la anterior.",
+      "current": "Actual",
+      "noVersions": "Todavía no hay envíos.",
+      "documents": "Documentos",
+      "noDocuments": "No hay documentos de este trabajador."
+    },
+    "owners": {
+      "title": "{count} propietarios",
+      "empty": "Todavía no se ha invitado a ningún propietario.",
+      "name": "Nombre",
+      "percent": "Participación",
+      "status": "Estado",
+      "tin": "Id. fiscal",
+      "notYet": "Sin enviar"
+    },
+    "documents": {
+      "title": "{count} documentos",
+      "empty": "Todavía no hay documentos.",
+      "type": "Tipo",
+      "label": "Etiqueta",
+      "visibility": "Visibilidad",
+      "uploadedBy": "Subido por",
+      "size": "Tamaño"
+    },
+    "notes": {
+      "title": "{count} notas",
+      "empty": "Todavía no hay notas.",
+      "firmOnly": "Solo el despacho"
+    },
+    "activity": {
+      "title": "Actividad",
+      "when": "Cuándo",
+      "action": "Acción",
+      "actor": "Quién",
+      "reason": "Motivo",
+      "empty": "Todavía no hay registros."
+    },
+    "reveal": {
+      "button": "Revelar",
+      "title": "Revelar {field}",
+      "reason": "¿Por qué necesita verlo?",
+      "reasonHint": "Al menos diez caracteres. Queda registrado de forma permanente a su nombre.",
+      "code": "Código de autenticación",
+      "codeHint": "Un código nuevo de seis dígitos de su aplicación de autenticación.",
+      "confirm": "Revelar",
+      "hiding": "se oculta en {seconds} s",
+      "hideNow": "Ocultar ahora",
+      "notice": "El valor se mostrará durante 30 segundos y luego se ocultará de nuevo."
+    },
+    "errors": {
+      "check": "Revise los campos señalados.",
+      "notFound": "No se encontró ese registro.",
+      "noValue": "No hay ningún valor registrado para ese campo."
+    }
+  },
+  "company": {
+    "dashboard": {
+      "title": "Incorporación",
+      "checklist": "Lo que falta por hacer",
+      "go": "Abrir",
+      "allDone": "Todo está completo. Su despacho contable tiene lo que necesita.",
+      "remaining": "Faltan {count} elementos por completar.",
+      "workers": "Trabajadores",
+      "owners": "Propietarios",
+      "view": "Ver",
+      "workersSubmitted": "{count} han enviado su información"
+    },
+    "workers": {
+      "title": "Trabajadores",
+      "invite": "Invitar a un trabajador",
+      "empty": "Todavía no hay trabajadores.",
+      "name": "Nombre",
+      "jobTitle": "Puesto",
+      "type": "Tipo",
+      "startDate": "Fecha de inicio",
+      "status": "Estado",
+      "privacyNote": "Usted verá si cada persona ha terminado, y nada más. Su nombre legal, fecha de nacimiento, identificación fiscal y datos bancarios van directamente a su despacho contable y nunca se muestran aquí, ni siquiera los últimos cuatro dígitos."
+    },
+    "inviteWorker": {
+      "title": "Invitar a un trabajador",
+      "intro": "Recibirá un mensaje de texto con un enlace. La persona introduce sus propios datos personales y bancarios; usted solo verá si ha terminado.",
+      "person": "La persona",
+      "personHint": "Lo justo para poder enviarle un mensaje de texto.",
+      "displayName": "Nombre",
+      "displayNameHint": "Como usted se refiere a esa persona. No tiene que ser su nombre legal completo.",
+      "type": "Tipo de trabajador",
+      "language": "Idioma",
+      "languageHint": "El idioma de su formulario y de sus mensajes.",
+      "phone": "Número de celular",
+      "phoneHint": "El enlace se envía aquí.",
+      "payroll": "Datos de nómina",
+      "payrollHint": "Usted los introduce. El trabajador no los ve ni los cambia.",
+      "jobTitle": "Puesto",
+      "startDate": "Fecha de inicio",
+      "payType": "Tipo de pago",
+      "payFrequency": "Frecuencia de pago",
+      "workState": "Estado de trabajo",
+      "submit": "Enviar la invitación"
+    },
+    "owners": {
+      "title": "Propietarios",
+      "invite": "Invitar a un propietario",
+      "empty": "Todavía no hay propietarios.",
+      "back": "Propietarios",
+      "name": "Nombre",
+      "percent": "Participación",
+      "status": "Estado",
+      "privacyNote": "Cada propietario proporciona su propio número de Seguro Social o ITIN mediante su propio enlace, usted incluido. Usted verá si ha enviado sus datos, y nada más."
+    },
+    "inviteOwner": {
+      "title": "Invitar a un propietario",
+      "intro": "Recibirá un mensaje de texto con un enlace y proporcionará su propio nombre, fecha de nacimiento, dirección e identificación fiscal. Si usted mismo es propietario, invítese aquí: el proceso es el mismo.",
+      "displayName": "Nombre",
+      "displayNameHint": "Como usted se refiere a esa persona.",
+      "percent": "Porcentaje de participación",
+      "percentHint": "Opcional. Se avisa, pero no se impide, si el total no es 100.",
+      "phone": "Número de celular",
+      "phoneHint": "El enlace se envía aquí.",
+      "language": "Idioma",
+      "submit": "Enviar la invitación"
+    },
+    "profile": {
+      "title": "Perfil de la empresa",
+      "saved": "Guardado.",
+      "identity": "Identidad",
+      "legalName": "Razón social",
+      "dbaName": "Nombre comercial",
+      "ein": "EIN",
+      "address": "Dirección",
+      "address2": "Suite o piso",
+      "city": "Ciudad",
+      "state": "Estado",
+      "postalCode": "Código postal",
+      "contactEmail": "Correo de contacto",
+      "contactPhone": "Teléfono de contacto",
+      "operating": "Estados donde opera",
+      "operatingHint": "Todos los estados en los que tiene trabajadores. Las reglas de compensación laboral y de impuestos estatales son distintas en cada uno.",
+      "insurance": "Seguros",
+      "wcStatus": "Compensación laboral",
+      "wcPolicy": "Número de póliza",
+      "wcCarrier": "Aseguradora",
+      "wcExpires": "Vence",
+      "exemptHint": "Suba su documento de exención en la página de Documentos. Las reglas de exención y el comprobante aceptable varían según el estado.",
+      "disabilityPolicy": "Número de póliza de incapacidad",
+      "disabilityCarrier": "Aseguradora de incapacidad",
+      "disabilityExpires": "Vencimiento de incapacidad"
+    },
+    "banking": {
+      "title": "Cuenta bancaria de la empresa",
+      "intro": "Es la cuenta propia de su empresa. Se guarda cifrada, se muestra enmascarada, y revelarla queda registrado.",
+      "onFile": "Registrado",
+      "add": "Añadir datos bancarios",
+      "replace": "Reemplazar datos bancarios",
+      "hint": "Introduzca la cuenta que usa su empresa. No es la cuenta de ningún trabajador.",
+      "bankName": "Nombre del banco",
+      "routing": "Número de ruta",
+      "routingHint": "Nueve dígitos.",
+      "account": "Número de cuenta",
+      "accountConfirm": "Número de cuenta otra vez"
+    },
+    "documents": {
+      "title": "Documentos",
+      "intro": "Acta constitutiva, pólizas de seguro y cualquier otro documento que su despacho contable haya solicitado.",
+      "upload": "Subir un documento",
+      "type": "Tipo de documento",
+      "label": "Descripción",
+      "labelHint": "Opcional. ¿Qué es este archivo?",
+      "file": "Archivo",
+      "fileHint": "PDF o imagen, hasta 25 MB.",
+      "uploadSubmit": "Subir",
+      "uploadedOk": "Subido.",
+      "uploaded": "{count} documentos",
+      "empty": "Todavía no hay documentos."
+    },
+    "certify": {
+      "nameHint": "Su nombre registrado es {expected}."
+    },
+    "errors": {
+      "check": "Revise los campos señalados.",
+      "noValue": "No hay nada registrado para ese campo.",
+      "revealFailed": "No se pudo revelar."
+    }
+  },
+  "documents": {
+    "errors": {
+      "type": "Ese tipo de archivo no se acepta. Use un PDF o una imagen.",
+      "empty": "Elija un archivo para subir.",
+      "tooLarge": "Ese archivo es demasiado grande. El límite es 25 MB."
+    }
   }
 }

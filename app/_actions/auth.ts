@@ -30,8 +30,6 @@ export interface ActionState {
   values?: Record<string, string>;
 }
 
-const IDLE: ActionState = {};
-
 /**
  * Cookie attributes.
  *
@@ -164,5 +162,3 @@ export async function completeSetupAction(
   // discovering now rather than at 8am on their first real login.
   redirect('/login?setup=complete');
 }
-
-export const initialActionState = IDLE;
