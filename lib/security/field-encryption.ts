@@ -178,6 +178,48 @@ export async function encryptField(
 }
 
 /**
+ * A ciphertext and its masked display value, produced together.
+ *
+ * The two always travel as a pair — a `_last4` with no ciphertext is
+ * unrecoverable data wearing a mask, which the `worker_records_bank_pair_ck`
+ * constraint refuses outright. Producing them in one call means a caller cannot
+ * compute one and forget the other.
+ */
+export interface SealedValue {
+  enc: Buffer;
+  last4: string;
+}
+
+/**
+ * Encrypts a value and derives its last-4 in one step.
+ *
+ * This is what the resumable form saves after each screen. A worker who types
+ * their tax ID on screen 8 and loses signal must not have to start again, so the
+ * answer is persisted — and it is persisted sealed, so the plaintext exists only
+ * inside the request that typed it. A half-finished form is not less sensitive
+ * than a finished one.
+ */
+export async function sealValue(
+  session: Session,
+  companyId: string,
+  plaintext: string,
+): Promise<SealedValue> {
+  return {
+    enc: await encryptField(session, companyId, plaintext),
+    last4: last4(plaintext),
+  };
+}
+
+/** Round-trips a sealed value through the JSON draft column. */
+export function sealedToJson(value: SealedValue): { enc: string; last4: string } {
+  return { enc: value.enc.toString('base64'), last4: value.last4 };
+}
+
+export function sealedFromJson(value: { enc: string; last4: string }): SealedValue {
+  return { enc: Buffer.from(value.enc, 'base64'), last4: value.last4 };
+}
+
+/**
  * Decrypts one field of one record.
  *
  * Order of operations is fixed by the spec and by the threat it addresses: the

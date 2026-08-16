@@ -189,5 +189,163 @@
       "subject": "Onboarding needs attention",
       "body": "{name} has not completed their onboarding after repeated reminders.\n\nReview it here:\n\n{url}"
     }
+  },
+  "form": {
+    "verify": {
+      "title": "First, confirm your date of birth",
+      "body": "{company} sent you this link. To make sure it reached the right person, enter your date of birth.",
+      "why": "Your employer does not know your date of birth, so this keeps the link from working for anyone else.",
+      "month": "Month",
+      "day": "Day",
+      "year": "Year"
+    },
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "expired": {
+      "title": "This link is no longer valid",
+      "body": "Links can be used once and expire after seven days.",
+      "next": "Ask the company that sent it to you for a new one."
+    },
+    "locked": {
+      "title": "This link is locked",
+      "body": "Too many incorrect answers. Try again in an hour. If you did not make those attempts, tell the company that sent you this link."
+    },
+    "welcome": {
+      "title": "{company} needs some information from you",
+      "what": "We will ask for your legal name, address, date of birth, tax ID number, and bank details for direct deposit.",
+      "privacy": "{company} will not see what you enter here. It goes only to their accounting firm, who use it to pay you and file your taxes.",
+      "time": "It takes about five minutes. You can stop and come back to this link at any point — your answers are saved as you go.",
+      "start": "Get started"
+    },
+    "name": {
+      "title": "What is your full legal name?",
+      "hint": "Exactly as it appears on your Social Security card or ITIN letter.",
+      "first": "First name",
+      "middle": "Middle name",
+      "middleHint": "Leave blank if you do not have one.",
+      "last": "Last name"
+    },
+    "dob": {
+      "title": "Is this your date of birth?",
+      "hint": "This is what you entered a moment ago.",
+      "label": "Date of birth"
+    },
+    "address": {
+      "title": "Where do you live?",
+      "line1": "Street address",
+      "line2": "Apartment, unit, or floor",
+      "city": "City",
+      "state": "State",
+      "postalCode": "ZIP code"
+    },
+    "contact": {
+      "title": "How can we reach you?",
+      "phone": "Mobile number",
+      "phoneHint": "The number this link was sent to.",
+      "email": "Email address",
+      "emailHint": "Optional. Only used if we need to reach you about your paperwork."
+    },
+    "emergency": {
+      "title": "Emergency contact",
+      "hint": "Optional. Someone we should call if something happens at work.",
+      "name": "Name",
+      "phone": "Phone number",
+      "relationship": "Relationship to you"
+    },
+    "tinType": {
+      "title": "Which tax ID number do you have?",
+      "hint": "Choose the one that matches the document you hold.",
+      "SSN": {
+        "title": "Social Security Number",
+        "body": "A nine-digit number on a Social Security card, issued by the Social Security Administration."
+      },
+      "ITIN": {
+        "title": "ITIN",
+        "body": "An Individual Taxpayer Identification Number, issued by the IRS in a letter. It always starts with 9."
+      }
+    },
+    "tin": {
+      "title": "Enter your tax ID number",
+      "hint": "Nine digits. Nobody at your workplace will see this.",
+      "label": {
+        "SSN": "Social Security Number",
+        "ITIN": "ITIN"
+      }
+    },
+    "bank": {
+      "title": "Where should you be paid?",
+      "hint": "This is the account your pay will be deposited into.",
+      "name": "Name of your bank",
+      "type": "Account type",
+      "checking": "Checking",
+      "savings": "Savings"
+    },
+    "routing": {
+      "title": "Routing number",
+      "hint": "Nine digits, usually the leftmost number at the bottom of a check."
+    },
+    "account": {
+      "title": "Account number",
+      "hint": "Between 4 and 17 digits, to the right of the routing number.",
+      "label": "Account number",
+      "confirm": "Enter it again"
+    },
+    "check": {
+      "title": "Photo of a voided check",
+      "hint": "This helps the accounting firm confirm your account details.",
+      "optional": "This step is optional. You can finish without it.",
+      "skip": "Skip this step"
+    },
+    "notes": {
+      "title": "Anything else we should know?",
+      "hint": "Optional.",
+      "label": "Notes",
+      "privacy": "Only the accounting firm reads this. Your employer does not see it."
+    },
+    "review": {
+      "title": "Check your answers",
+      "hint": "Tap Edit to change anything.",
+      "confirm": "This is all correct",
+      "edit": "Edit",
+      "name": "Legal name",
+      "dob": "Date of birth",
+      "address": "Address",
+      "contact": "Contact",
+      "tin": {
+        "SSN": "Social Security Number",
+        "ITIN": "ITIN"
+      },
+      "bank": "Bank",
+      "routing": "Routing number",
+      "account": "Account number"
+    },
+    "sign": {
+      "submit": "Sign and continue",
+      "nameMismatch": "This does not match the name you gave earlier ({expected}). You can still continue if this is how you sign your name."
+    },
+    "done": {
+      "title": "All done",
+      "body": "Thank you. Your information has gone to the accounting firm for {company}.",
+      "corrections": "If something needs to change later, tell the company and they will send you a new link.",
+      "close": "Close"
+    },
+    "errors": {
+      "check": "Please check the highlighted fields.",
+      "dobFormat": "Choose a month, day, and year.",
+      "dobWrong": "That does not match. Please check the date and try again.",
+      "dobWrongRemaining": "That does not match. You have {remaining} attempts left before this link is locked for an hour."
+    }
   }
 }

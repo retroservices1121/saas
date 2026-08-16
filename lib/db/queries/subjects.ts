@@ -11,7 +11,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { insertColumns, schema, withScope, type ScopedDb } from '../scoped';
 import type { CompanySession, FirmSession, Session, SubjectSession } from '../../auth/session';
 import { audit } from '../../audit';
-import { encryptField, last4 } from '../../security/field-encryption';
+import { type SealedValue } from '../../security/field-encryption';
 import { issueInvite, type IssuedInvite } from '../../invites';
 import { sendOwnerInvite, sendWorkerInvite } from '../../notifications';
 import { uuidv7 } from '../../uuid';
@@ -318,6 +318,15 @@ async function deliverInvite(
 // Submission
 // ---------------------------------------------------------------------------
 
+/**
+ * A submission, with the sensitive fields already sealed.
+ *
+ * They arrive encrypted rather than as plaintext because the resumable form
+ * seals each answer at the screen that collects it — see `sealValue`. Taking
+ * plaintext here would mean the wizard had to hold it, or decrypt its own draft
+ * to submit, and every decryption in this system writes an audit row for a
+ * reason.
+ */
 export interface WorkerSubmission {
   legalFirstName: string;
   legalMiddleName?: string | null;
@@ -331,11 +340,11 @@ export interface WorkerSubmission {
   email?: string | null;
   phoneE164?: string | null;
   tinType: 'SSN' | 'ITIN';
-  tin: string;
+  tin: SealedValue;
   bankName?: string | null;
   bankAccountType?: 'CHECKING' | 'SAVINGS' | null;
-  routingNumber?: string | null;
-  accountNumber?: string | null;
+  routing?: SealedValue | null;
+  account?: SealedValue | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
@@ -358,17 +367,6 @@ export async function submitWorkerForm(
   }
 
   const recordId = uuidv7();
-
-  // Encryption happens before the transaction. Each call opens its own scoped
-  // transaction to read the DEK, and nesting those inside the insert
-  // transaction would hold it open across three round trips for no benefit.
-  const tinEnc = await encryptField(session, session.companyId, input.tin);
-  const routingEnc = input.routingNumber
-    ? await encryptField(session, session.companyId, input.routingNumber)
-    : null;
-  const accountEnc = input.accountNumber
-    ? await encryptField(session, session.companyId, input.accountNumber)
-    : null;
 
   await withScope(session, async (db) => {
     await db.insert(schema.workerRecords).values({
@@ -394,15 +392,15 @@ export async function submitWorkerForm(
       phoneE164: input.phoneE164 ?? null,
 
       tinType: input.tinType,
-      tinEnc,
-      tinLast4: last4(input.tin),
+      tinEnc: input.tin.enc,
+      tinLast4: input.tin.last4,
 
       bankName: input.bankName ?? null,
       bankAccountType: input.bankAccountType ?? null,
-      routingEnc,
-      routingLast4: input.routingNumber ? last4(input.routingNumber) : null,
-      accountEnc,
-      accountLast4: input.accountNumber ? last4(input.accountNumber) : null,
+      routingEnc: input.routing?.enc ?? null,
+      routingLast4: input.routing?.last4 ?? null,
+      accountEnc: input.account?.enc ?? null,
+      accountLast4: input.account?.last4 ?? null,
 
       emergencyContactName: input.emergencyContactName ?? null,
       emergencyContactPhone: input.emergencyContactPhone ?? null,
@@ -442,7 +440,7 @@ export interface OwnerSubmission {
   postalCode?: string | null;
   email?: string | null;
   tinType: 'SSN' | 'ITIN';
-  tin: string;
+  tin: SealedValue;
 }
 
 /**
@@ -461,8 +459,6 @@ export async function submitOwnerForm(
     throw new Error('Only an owner session may submit an owner record.');
   }
 
-  const tinEnc = await encryptField(session, session.companyId, input.tin);
-
   await withScope(session, async (db) => {
     await db
       .update(schema.companyOwners)
@@ -478,8 +474,8 @@ export async function submitOwnerForm(
         postalCode: input.postalCode ?? null,
         email: input.email ?? null,
         tinType: input.tinType,
-        tinEnc,
-        tinLast4: last4(input.tin),
+        tinEnc: input.tin.enc,
+        tinLast4: input.tin.last4,
         status: 'SUBMITTED',
         submittedAt: new Date(),
       })
@@ -512,13 +508,6 @@ export async function correctWorkerRecord(
   }
 
   const recordId = uuidv7();
-  const tinEnc = await encryptField(session, params.companyId, input.tin);
-  const routingEnc = input.routingNumber
-    ? await encryptField(session, params.companyId, input.routingNumber)
-    : null;
-  const accountEnc = input.accountNumber
-    ? await encryptField(session, params.companyId, input.accountNumber)
-    : null;
 
   await withScope(session, async (db) => {
     await db.insert(schema.workerRecords).values({
@@ -539,14 +528,14 @@ export async function correctWorkerRecord(
       email: input.email ?? null,
       phoneE164: input.phoneE164 ?? null,
       tinType: input.tinType,
-      tinEnc,
-      tinLast4: last4(input.tin),
+      tinEnc: input.tin.enc,
+      tinLast4: input.tin.last4,
       bankName: input.bankName ?? null,
       bankAccountType: input.bankAccountType ?? null,
-      routingEnc,
-      routingLast4: input.routingNumber ? last4(input.routingNumber) : null,
-      accountEnc,
-      accountLast4: input.accountNumber ? last4(input.accountNumber) : null,
+      routingEnc: input.routing?.enc ?? null,
+      routingLast4: input.routing?.last4 ?? null,
+      accountEnc: input.account?.enc ?? null,
+      accountLast4: input.account?.last4 ?? null,
       emergencyContactName: input.emergencyContactName ?? null,
       emergencyContactPhone: input.emergencyContactPhone ?? null,
       emergencyContactRelationship: input.emergencyContactRelationship ?? null,

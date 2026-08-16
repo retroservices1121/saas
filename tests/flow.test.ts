@@ -29,7 +29,12 @@ import {
 import { openInvite, verifyInviteDob, subjectSessionFor, consumeInvite } from '../lib/invites';
 import { captureSignature, missingSignatures, REQUIRED_SIGNATURES } from '../lib/esign/sign';
 import { renderDocument } from '../lib/esign/documents';
-import { decryptField, evictDek, DecryptForbiddenError } from '../lib/security/field-encryption';
+import {
+  decryptField,
+  evictDek,
+  sealValue,
+  DecryptForbiddenError,
+} from '../lib/security/field-encryption';
 import { resolveFirmScope } from '../lib/auth/scope';
 import { scanForSensitiveFields } from '../lib/security/response-scan';
 import { sql } from 'drizzle-orm';
@@ -259,11 +264,13 @@ describe('7.4 / 7.5 the worker path', () => {
       email: 'ada@example.test',
       phoneE164: '+15555550100',
       tinType: 'SSN',
-      tin: TIN,
+      // Sealed at the screen that collects it, exactly as the form does — the
+      // plaintext never reaches the draft or the submit call.
+      tin: await sealValue(subject, companyId, TIN),
       bankName: 'Test Bank',
       bankAccountType: 'CHECKING',
-      routingNumber: ROUTING,
-      accountNumber: ACCOUNT,
+      routing: await sealValue(subject, companyId, ROUTING),
+      account: await sealValue(subject, companyId, ACCOUNT),
       emergencyContactName: 'C. Babbage',
       emergencyContactPhone: '+15555550111',
       emergencyContactRelationship: 'Colleague',

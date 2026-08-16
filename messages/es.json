@@ -195,5 +195,163 @@
       "subject": "La incorporación requiere atención",
       "body": "{name} no ha completado su incorporación tras varios recordatorios.\n\nRevísela aquí:\n\n{url}"
     }
+  },
+  "form": {
+    "verify": {
+      "title": "Primero, confirme su fecha de nacimiento",
+      "body": "{company} le envió este enlace. Para asegurarnos de que llegó a la persona correcta, introduzca su fecha de nacimiento.",
+      "why": "Su empleador no conoce su fecha de nacimiento, así que esto impide que el enlace funcione para otra persona.",
+      "month": "Mes",
+      "day": "Día",
+      "year": "Año"
+    },
+    "months": {
+      "1": "enero",
+      "2": "febrero",
+      "3": "marzo",
+      "4": "abril",
+      "5": "mayo",
+      "6": "junio",
+      "7": "julio",
+      "8": "agosto",
+      "9": "septiembre",
+      "10": "octubre",
+      "11": "noviembre",
+      "12": "diciembre"
+    },
+    "expired": {
+      "title": "Este enlace ya no es válido",
+      "body": "Los enlaces se pueden usar una sola vez y caducan a los siete días.",
+      "next": "Pida uno nuevo a la empresa que se lo envió."
+    },
+    "locked": {
+      "title": "Este enlace está bloqueado",
+      "body": "Demasiadas respuestas incorrectas. Inténtelo de nuevo dentro de una hora. Si usted no hizo esos intentos, avise a la empresa que le envió este enlace."
+    },
+    "welcome": {
+      "title": "{company} necesita algunos datos suyos",
+      "what": "Le pediremos su nombre legal, dirección, fecha de nacimiento, número de identificación fiscal y datos bancarios para el depósito directo.",
+      "privacy": "{company} no verá lo que usted escriba aquí. Va únicamente a su despacho contable, que lo usa para pagarle y presentar sus impuestos.",
+      "time": "Toma unos cinco minutos. Puede detenerse y volver a este enlace cuando quiera: sus respuestas se guardan sobre la marcha.",
+      "start": "Comenzar"
+    },
+    "name": {
+      "title": "¿Cuál es su nombre legal completo?",
+      "hint": "Tal como aparece en su tarjeta del Seguro Social o en su carta del ITIN.",
+      "first": "Nombre",
+      "middle": "Segundo nombre",
+      "middleHint": "Déjelo en blanco si no tiene.",
+      "last": "Apellidos"
+    },
+    "dob": {
+      "title": "¿Es esta su fecha de nacimiento?",
+      "hint": "Es la que introdujo hace un momento.",
+      "label": "Fecha de nacimiento"
+    },
+    "address": {
+      "title": "¿Dónde vive?",
+      "line1": "Dirección",
+      "line2": "Apartamento, unidad o piso",
+      "city": "Ciudad",
+      "state": "Estado",
+      "postalCode": "Código postal"
+    },
+    "contact": {
+      "title": "¿Cómo podemos comunicarnos con usted?",
+      "phone": "Número de celular",
+      "phoneHint": "El número al que se envió este enlace.",
+      "email": "Correo electrónico",
+      "emailHint": "Opcional. Solo se usa si necesitamos comunicarnos sobre sus documentos."
+    },
+    "emergency": {
+      "title": "Contacto de emergencia",
+      "hint": "Opcional. Alguien a quien llamar si ocurre algo en el trabajo.",
+      "name": "Nombre",
+      "phone": "Teléfono",
+      "relationship": "Parentesco o relación con usted"
+    },
+    "tinType": {
+      "title": "¿Qué número de identificación fiscal tiene?",
+      "hint": "Elija el que corresponda al documento que usted tiene.",
+      "SSN": {
+        "title": "Número de Seguro Social",
+        "body": "Un número de nueve dígitos que aparece en la tarjeta del Seguro Social, emitido por la Administración del Seguro Social."
+      },
+      "ITIN": {
+        "title": "ITIN",
+        "body": "Un Número de Identificación Personal del Contribuyente, emitido por el IRS mediante una carta. Siempre empieza por 9."
+      }
+    },
+    "tin": {
+      "title": "Introduzca su número de identificación fiscal",
+      "hint": "Nueve dígitos. Nadie en su lugar de trabajo verá esto.",
+      "label": {
+        "SSN": "Número de Seguro Social",
+        "ITIN": "ITIN"
+      }
+    },
+    "bank": {
+      "title": "¿Dónde debemos depositarle su pago?",
+      "hint": "Esta es la cuenta en la que se depositará su pago.",
+      "name": "Nombre de su banco",
+      "type": "Tipo de cuenta",
+      "checking": "Corriente",
+      "savings": "De ahorros"
+    },
+    "routing": {
+      "title": "Número de ruta",
+      "hint": "Nueve dígitos, normalmente el número más a la izquierda en la parte inferior de un cheque."
+    },
+    "account": {
+      "title": "Número de cuenta",
+      "hint": "Entre 4 y 17 dígitos, a la derecha del número de ruta.",
+      "label": "Número de cuenta",
+      "confirm": "Introdúzcalo otra vez"
+    },
+    "check": {
+      "title": "Foto de un cheque anulado",
+      "hint": "Ayuda al despacho contable a confirmar los datos de su cuenta.",
+      "optional": "Este paso es opcional. Puede terminar sin él.",
+      "skip": "Omitir este paso"
+    },
+    "notes": {
+      "title": "¿Hay algo más que debamos saber?",
+      "hint": "Opcional.",
+      "label": "Notas",
+      "privacy": "Solo el despacho contable lee esto. Su empleador no lo ve."
+    },
+    "review": {
+      "title": "Revise sus respuestas",
+      "hint": "Toque Editar para cambiar cualquier dato.",
+      "confirm": "Todo es correcto",
+      "edit": "Editar",
+      "name": "Nombre legal",
+      "dob": "Fecha de nacimiento",
+      "address": "Dirección",
+      "contact": "Contacto",
+      "tin": {
+        "SSN": "Número de Seguro Social",
+        "ITIN": "ITIN"
+      },
+      "bank": "Banco",
+      "routing": "Número de ruta",
+      "account": "Número de cuenta"
+    },
+    "sign": {
+      "submit": "Firmar y continuar",
+      "nameMismatch": "Esto no coincide con el nombre que indicó antes ({expected}). Puede continuar igualmente si así firma usted su nombre."
+    },
+    "done": {
+      "title": "Listo",
+      "body": "Gracias. Su información se envió al despacho contable de {company}.",
+      "corrections": "Si algo tiene que cambiar más adelante, avise a la empresa y le enviarán un enlace nuevo.",
+      "close": "Cerrar"
+    },
+    "errors": {
+      "check": "Revise los campos señalados.",
+      "dobFormat": "Elija un mes, un día y un año.",
+      "dobWrong": "No coincide. Verifique la fecha e inténtelo de nuevo.",
+      "dobWrongRemaining": "No coincide. Le quedan {remaining} intentos antes de que este enlace se bloquee durante una hora."
+    }
   }
 }
