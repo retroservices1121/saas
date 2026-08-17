@@ -14,5 +14,12 @@ export async function register(): Promise<void> {
     // gets missed; one that stops the process from booting does not.
     const { assertDocumentsApproved } = await import('./lib/esign/documents');
     assertDocumentsApproved();
+
+    // Proves the configured key provider actually works, by doing a real
+    // wrap/unwrap once. A misconfigured KMS otherwise surfaces the first time
+    // somebody onboards a company — the worst moment, and the hardest place to
+    // read the error.
+    const { preflightKms } = await import('./lib/security/kms');
+    await preflightKms();
   }
 }

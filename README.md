@@ -20,7 +20,7 @@ not calculate, withhold, file, or move money.
 
 ## Build status
 
-All seventeen steps of the spec's build order are implemented. 133 tests pass
+All seventeen steps of the spec's build order are implemented. 147 tests pass
 against Postgres 16 with row level security forced.
 
 | Step | Status |
@@ -55,9 +55,10 @@ against Postgres 16 with row level security forced.
 2. **A data processing agreement.** The platform is a processor; the firm and
    the companies are controllers.
 3. **The date-of-birth gate on a first invite** — see below.
-4. **`KMS_PROVIDER=aws`** and **`STORAGE_PROVIDER=s3`**, both of which are
-   interfaces with the local implementation written and the production one
-   stubbed with an explicit error.
+4. **A real key custodian.** `KMS_PROVIDER=vault` and a Vault Transit key —
+   see "Deploying on Railway" below. The `local` provider puts a master key in
+   an environment variable, which means anyone holding that variable holds
+   every tenant's data and nothing records that they used it.
 
 ---
 
@@ -73,7 +74,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"     
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"     # AUTH_SECRET
 
 pnpm db:bootstrap    # migrate, then create app_user
-pnpm test            # 133 tests, needs the database
+pnpm test            # 147 tests, needs the database
 pnpm db:seed         # a demo firm, company, worker and owner, with links
 pnpm dev
 ```
@@ -268,7 +269,7 @@ drizzle/
   prelude/             app schema, uuid v7
   generated/           produced by `pnpm db:generate` — never hand-edited
   post/                RLS, roles, grants, triggers, constraints
-tests/                 133 tests; the isolation suite is spec section 5
+tests/                 147 tests; the isolation suite is spec section 5
 docs/DESIGN_BRIEF.md   a brief for designing the UI properly
 ```
 
@@ -300,7 +301,75 @@ refactor.
 
 | Service | `local` / `console` | Production |
 |---|---|---|
-| Key management | master key in env, same AES-256-GCM envelope | AWS KMS (`KMS_PROVIDER=aws`, not yet implemented) |
-| Object storage | filesystem, signed expiring URLs | S3, private, SSE-KMS |
+| Key management | master key in env, same AES-256-GCM envelope | Vault Transit (`KMS_PROVIDER=vault`). AWS KMS is stubbed. |
+| Object storage | filesystem | Any S3-compatible bucket (`STORAGE_PROVIDER=s3`) |
 | SMS | server log | Twilio (implemented, needs credentials) |
 | Email | server log | Resend (implemented, needs credentials) |
+
+---
+
+## Deploying on Railway
+
+Nothing here needs AWS.
+
+### Storage — Railway Buckets
+
+Attach a Bucket to the service. Railway injects `BUCKET`, `ACCESS_KEY_ID`,
+`SECRET_ACCESS_KEY`, `ENDPOINT` and `REGION`, which the S3 provider picks up
+without further configuration. Set `STORAGE_PROVIDER=s3`.
+
+The same provider works unchanged against Cloudflare R2, MinIO, and AWS S3 —
+they are the same API.
+
+Two things Railway Buckets do not have, and why neither matters here:
+
+- **No server-side encryption.** Every object is encrypted with the owning
+  company's data key *before* upload, so the provider holds ciphertext and no
+  key. That is strictly stronger than SSE-KMS: a compromise of the bucket yields
+  nothing, and destroying a company's DEK shreds its voided checks and ID
+  photographs along with its tax IDs — which server-side encryption under the
+  provider's key could not do. There is a test for exactly that.
+- **No lifecycle rules.** The 24-hour export deletion is done by
+  `pnpm jobs expire-exports`, in application code, with an audit row. A
+  lifecycle rule would have been the version that deletes silently.
+
+A consequence worth knowing: because stored objects are ciphertext, presigned
+URLs are meaningless and there are none. Documents stream through the
+application, which means every read is an authenticated request that writes a
+`DOCUMENT_VIEWED` row, and revoking a session revokes the read with it.
+
+### Keys — Vault Transit
+
+Railway has no key management service, and no amount of configuration makes an
+environment variable into one. The realistic options are Vault, a hyperscaler
+KMS, or accepting the risk explicitly.
+
+With [HCP Vault](https://developer.hashicorp.com/vault) (free tier) or any Vault
+you run:
+
+```bash
+vault secrets enable transit
+vault write -f transit/keys/onboarding derived=true
+```
+
+Then set `KMS_PROVIDER=vault`, `VAULT_ADDR`, and `VAULT_TOKEN`.
+
+`derived=true` is the part that matters. Vault then derives a distinct wrapping
+key per company, so a wrapped DEK lifted from one company's row cannot be
+unwrapped as another's even by a caller holding a valid Vault token. It is the
+same property the local provider gets from AAD, obtained from the key hierarchy
+instead.
+
+The application does a real wrap/unwrap at boot and refuses to start if the
+token, mount, key name, or `derived` setting disagree — a misconfigured KMS
+otherwise surfaces the first time somebody onboards a company, which is the
+worst possible moment to discover it.
+
+Rotation is `vault write -f transit/keys/onboarding/rotate`. New DEKs wrap under
+v2; every existing `vault:v1:` DEK keeps unwrapping. Nothing is re-encrypted.
+
+### Jobs
+
+`pnpm jobs nightly` is not scheduled by anything yet. Railway cron, or any
+scheduler that can run a command, needs to invoke it daily — otherwise reminders
+never send and nothing is ever purged.

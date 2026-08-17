@@ -28,6 +28,7 @@ import {
 } from '../lib/db/queries/company';
 import { openInvite, verifyInviteDob, subjectSessionFor, consumeInvite } from '../lib/invites';
 import { captureSignature, missingSignatures, REQUIRED_SIGNATURES } from '../lib/esign/sign';
+import { readDocument } from '../lib/documents';
 import { renderDocument } from '../lib/esign/documents';
 import {
   decryptField,
@@ -79,12 +80,6 @@ beforeAll(async () => {
     },
     async delete(key) {
       objects.delete(key);
-    },
-    async signedGetUrl(key) {
-      return `test://${key}`;
-    },
-    async signedPutUrl(key) {
-      return `test://${key}`;
     },
   });
 
@@ -473,7 +468,13 @@ describe('9. e-signature', () => {
     expect(document?.sensitivity).toBe('FIRM_ONLY');
     expect(document?.content_type).toBe('application/pdf');
 
-    const bytes = objects.get(document!.s3_key)!;
+    // What is in the bucket is ciphertext — the storage provider never holds a
+    // key. The PDF exists only once it comes back through readDocument.
+    const stored = objects.get(document!.s3_key)!;
+    expect(stored.subarray(0, 8).toString('latin1')).not.toBe('%PDF-1.4');
+
+    const opened = await readDocument(firmSession, result.documentId);
+    const bytes = opened!.bytes;
     expect(bytes.subarray(0, 8).toString('latin1')).toBe('%PDF-1.4');
     expect(bytes.subarray(-6).toString('latin1')).toBe('%%EOF\n');
     // Spanish accents survive the WinAnsi encoding.

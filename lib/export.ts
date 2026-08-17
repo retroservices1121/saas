@@ -18,12 +18,13 @@
  * bulk reveal that section 7.6 says must not exist in the codebase, and it
  * would exist here, one refactor away from the reveal button.
  */
-import { and, eq, gte, inArray, isNull, lte, sql as raw } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNull, lte } from 'drizzle-orm';
 import { schema, withScope } from './db/scoped';
 import type { FirmSession } from './auth/session';
 import { audit } from './audit';
 import { decryptField } from './security/field-encryption';
 import { getStorage, newObjectKey } from './services/storage';
+import { readDocument } from './documents';
 import { createEncryptedZip, generateArchivePassword, toCsv, type ZipEntry } from './zip';
 import { uuidv7 } from './uuid';
 import type { ExportInput } from './validation/forms';
@@ -105,9 +106,12 @@ export async function createExport(
     { name: 'owners.csv', data: Buffer.from(toCsv(owners), 'utf8') },
     {
       name: 'README.txt',
-      data: Buffer.from(readme(input, workers.length, owners.length, documents.length), 'utf8'),
+      data: Buffer.from(
+        readme(input, workers.length, owners.length, documents.entries.length, documents.missing),
+        'utf8',
+      ),
     },
-    ...documents,
+    ...documents.entries,
   ];
 
   const password = generateArchivePassword();
@@ -133,7 +137,7 @@ export async function createExport(
     expiresAt,
     workerCount: workers.length,
     ownerCount: owners.length,
-    documentCount: documents.length,
+    documentCount: documents.entries.length,
   };
 }
 
@@ -366,7 +370,7 @@ async function reveal(
 async function collectDocuments(
   session: FirmSession,
   companyIds: string[],
-): Promise<ZipEntry[]> {
+): Promise<{ entries: ZipEntry[]; missing: number }> {
   const rows = await withScope(session, async (db) =>
     db
       .select({
@@ -374,42 +378,42 @@ async function collectDocuments(
         companyId: schema.documents.companyId,
         docType: schema.documents.docType,
         s3Key: schema.documents.s3Key,
-        contentType: schema.documents.contentType,
-        subjectId: schema.documents.subjectId,
       })
       .from(schema.documents)
       .where(
-        and(
-          inArray(schema.documents.companyId, companyIds),
-          isNull(schema.documents.deletedAt),
-          // Sanity bound. An export is not a bulk download of a bucket, and an
-          // archive that takes four minutes to build is one somebody reloads.
-          raw`true`,
-        ),
+        and(inArray(schema.documents.companyId, companyIds), isNull(schema.documents.deletedAt)),
       )
+      // A sanity bound. An export is not a bulk download of a bucket, and an
+      // archive that takes four minutes to build is one somebody reloads.
       .limit(500),
   );
 
-  const storage = getStorage();
   const entries: ZipEntry[] = [];
+  let missing = 0;
 
   for (const row of rows) {
-    try {
-      const bytes = await storage.get(row.s3Key);
-      const extension = row.s3Key.split('.').pop() ?? 'bin';
-      entries.push({
-        name: `documents/${row.companyId}/${row.docType}-${row.id.slice(0, 8)}.${extension}`,
-        data: bytes,
-      });
-    } catch (err) {
-      // A missing object must not fail the whole export. It is recorded in the
-      // README so the recipient knows the archive is incomplete rather than
-      // concluding the document was never uploaded.
-      console.error(`[export] could not read ${row.s3Key}`, err);
+    // Through readDocument rather than straight from storage: the object is
+    // encrypted with the company's data key, and reading it is a disclosure
+    // that earns its own DOCUMENT_VIEWED row. An export that quietly copied
+    // forty documents out under one audit line would be the same mistake as a
+    // bulk field reveal.
+    const document = await readDocument(session, row.id);
+    if (!document) {
+      // A missing object must not fail the whole export. It is counted, and the
+      // README says how many — so the recipient knows the archive is incomplete
+      // rather than concluding the document was never uploaded.
+      missing++;
+      continue;
     }
+
+    const extension = row.s3Key.split('.').pop() ?? 'bin';
+    entries.push({
+      name: `documents/${row.companyId}/${row.docType}-${row.id.slice(0, 8)}.${extension}`,
+      data: document.bytes,
+    });
   }
 
-  return entries;
+  return { entries, missing };
 }
 
 function readme(
@@ -417,6 +421,7 @@ function readme(
   workers: number,
   owners: number,
   documents: number,
+  missing: number,
 ): string {
   return [
     'Onboarding platform export',
@@ -430,6 +435,13 @@ function readme(
     `workers.csv         ${workers} rows`,
     `owners.csv          ${owners} rows`,
     `documents/          ${documents} files`,
+    ...(missing > 0
+      ? [
+          '',
+          `WARNING: ${missing} document(s) could not be read from storage and are`,
+          'not in this archive. They are still recorded in the platform.',
+        ]
+      : []),
     '',
     input.includeSensitive
       ? [

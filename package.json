@@ -23,6 +23,7 @@
     "zip:verify": "python scripts/verify-zip.py"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1111.0",
     "@noble/hashes": "^2.3.0",
     "drizzle-orm": "^0.38.4",
     "next": "15.1.6",

@@ -50,12 +50,6 @@ beforeAll(async () => {
     async delete(key) {
       objects.delete(key);
     },
-    async signedGetUrl(key) {
-      return `test://${key}`;
-    },
-    async signedPutUrl(key) {
-      return `test://${key}`;
-    },
   });
 
   firm = await seedFirm();

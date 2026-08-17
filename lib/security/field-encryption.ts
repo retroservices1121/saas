@@ -210,6 +210,65 @@ export async function sealValue(
   };
 }
 
+/**
+ * The marker stored in `documents.content_encryption`.
+ *
+ * A column rather than an assumption, so documents written before this existed
+ * still open. A null means the object is stored as it was uploaded.
+ */
+export const BLOB_ENCRYPTION = 'DEK_AES_256_GCM';
+
+/**
+ * Seals a document before it reaches object storage.
+ *
+ * This is what replaces the spec's SSE-KMS, and it is strictly stronger: the
+ * storage provider never holds a key, so a compromise of the bucket — or a
+ * misconfigured ACL, or a provider subpoena — yields ciphertext. It also means
+ * destroying a company's DEK shreds its voided checks and ID photographs along
+ * with its tax IDs, which server-side encryption under the provider's own key
+ * could never do.
+ *
+ * The object key is the AAD. A ciphertext copied to a different key fails to
+ * open even under the correct DEK, so an attacker who can write to the bucket
+ * cannot swap one company's document for another's.
+ */
+export async function sealBlob(
+  session: Session,
+  companyId: string,
+  objectKey: string,
+  bytes: Buffer,
+): Promise<Buffer> {
+  return withScope(session, async (db) => {
+    const key = await loadDek(db, companyId);
+    return seal(key, bytes.toString('base64'), `${companyId}:${objectKey}`);
+  });
+}
+
+/**
+ * Opens a sealed document.
+ *
+ * Deliberately unguarded, unlike `decryptField`. Authorization happened when
+ * the caller read the `documents` row under its own scope: a FIRM_ONLY document
+ * does not exist for a company session, so a caller holding the row has already
+ * been permitted to have it. Re-checking a `sensitivity` column here would be
+ * checking a value that could only have been obtained by being allowed to see
+ * it — which proves nothing, and invites the belief that this function is the
+ * control.
+ *
+ * The control is the row read. This is the crypto.
+ */
+export async function openBlob(
+  session: Session,
+  companyId: string,
+  objectKey: string,
+  sealed: Buffer,
+): Promise<Buffer> {
+  return withScope(session, async (db) => {
+    const key = await loadDek(db, companyId);
+    return Buffer.from(open(key, sealed, `${companyId}:${objectKey}`), 'base64');
+  });
+}
+
 /** Round-trips a sealed value through the JSON draft column. */
 export function sealedToJson(value: SealedValue): { enc: string; last4: string } {
   return { enc: value.enc.toString('base64'), last4: value.last4 };

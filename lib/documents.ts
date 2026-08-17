@@ -18,10 +18,12 @@ import { uuidv7 } from './uuid';
 import {
   ALLOWED_UPLOAD_TYPES,
   MAX_UPLOAD_BYTES,
+  ObjectNotFoundError,
   extensionForContentType,
   getStorage,
   newObjectKey,
 } from './services/storage';
+import { BLOB_ENCRYPTION, openBlob, sealBlob } from './security/field-encryption';
 
 export type DocType = (typeof schema.docType.enumValues)[number];
 export type SubjectType = (typeof schema.subjectType.enumValues)[number];
@@ -100,7 +102,16 @@ export async function uploadDocument(
     extensionForContentType(input.contentType),
   );
 
-  await getStorage().put(key, input.bytes, { contentType: input.contentType });
+  // Sealed with the company's data key before it reaches storage. The provider
+  // — Railway, R2, S3 — holds ciphertext and no key, which is what replaces the
+  // spec's SSE-KMS and improves on it.
+  const sealed = await sealBlob(session, input.companyId, key, input.bytes);
+  await getStorage().put(key, sealed, {
+    contentType: input.contentType,
+    // The ciphertext is a little larger than the plaintext, and the limit was
+    // already checked against the plaintext above.
+    maxBytes: MAX_UPLOAD_BYTES * 2,
+  });
 
   const id = uuidv7();
 
@@ -114,10 +125,14 @@ export async function uploadDocument(
       label: input.label ?? null,
       s3Key: key,
       contentType: input.contentType,
+      // The size of the file the person chose, not of the ciphertext. What a
+      // firm user is being told is how big the document is.
       sizeBytes: input.bytes.byteLength,
       uploadedByRole: session.role,
-      uploadedByUserId: session.kind === 'subject' || session.kind === 'anonymous' ? null : session.userId,
+      uploadedByUserId:
+        session.kind === 'subject' || session.kind === 'anonymous' ? null : session.userId,
       sensitivity: sensitivityFor(input.docType, session.role),
+      contentEncryption: BLOB_ENCRYPTION,
     });
 
     await audit(db, session, {
@@ -137,19 +152,31 @@ export async function uploadDocument(
 }
 
 /**
- * A short-lived URL for one document, issued only after the row has been read
- * back under the caller's own scope.
+ * Reads one document back, decrypted.
  *
- * The read is the authorization check: RLS hides a FIRM_ONLY row from a company
- * session entirely, so a company admin who guesses a document id gets a null
- * here and no URL. Checking `sensitivity` in TypeScript afterwards would be
- * checking a value we could only have obtained by being allowed to see it.
+ * The row is fetched under the caller's own scope, and that read *is* the
+ * authorization: RLS removes a FIRM_ONLY document from a company session
+ * entirely, so a company admin who guesses a document id gets null here.
+ * Checking a `sensitivity` column afterwards would be checking a value we could
+ * only have obtained by being allowed to see it.
+ *
+ * Bytes come back through the application rather than by presigned URL. They
+ * have to — the stored object is ciphertext — and the consequence is worth
+ * having anyway: every read is an authenticated request that writes an audit
+ * row, and revoking a session revokes the read with it.
  */
-export async function getDocumentUrl(
+export interface DocumentContents {
+  id: string;
+  bytes: Buffer;
+  contentType: string;
+  label: string | null;
+  docType: DocType;
+}
+
+export async function readDocument(
   session: Session,
   documentId: string,
-  ttlSeconds = 120,
-): Promise<{ url: string; contentType: string; label: string | null } | null> {
+): Promise<DocumentContents | null> {
   const row = await withScope(session, async (db) => {
     const rows = await db
       .select({
@@ -159,6 +186,7 @@ export async function getDocumentUrl(
         contentType: schema.documents.contentType,
         label: schema.documents.label,
         docType: schema.documents.docType,
+        contentEncryption: schema.documents.contentEncryption,
       })
       .from(schema.documents)
       .where(and(eq(schema.documents.id, documentId), isNull(schema.documents.deletedAt)))
@@ -167,9 +195,8 @@ export async function getDocumentUrl(
     const found = rows[0];
     if (!found) return null;
 
-    // DOCUMENT_VIEWED is written when the URL is issued, not when the object is
-    // fetched: the URL is the disclosure, and whether the browser follows it is
-    // not something the server observes.
+    // Written when the bytes are handed over, which is the moment of
+    // disclosure — not when a URL is minted that may never be followed.
     await audit(db, session, {
       action: 'DOCUMENT_VIEWED',
       companyId: found.companyId,
@@ -183,10 +210,27 @@ export async function getDocumentUrl(
 
   if (!row) return null;
 
+  let stored: Buffer;
+  try {
+    stored = await getStorage().get(row.s3Key);
+  } catch (err) {
+    if (err instanceof ObjectNotFoundError) return null;
+    throw err;
+  }
+
+  // Null means the object predates client-side blob encryption. Handled rather
+  // than assumed away: a running deployment holds objects from both eras.
+  const bytes =
+    row.contentEncryption === BLOB_ENCRYPTION
+      ? await openBlob(session, row.companyId, row.s3Key, stored)
+      : stored;
+
   return {
-    url: await getStorage().signedGetUrl(row.s3Key, ttlSeconds),
+    id: row.id,
+    bytes,
     contentType: row.contentType,
     label: row.label,
+    docType: row.docType,
   };
 }
 

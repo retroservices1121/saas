@@ -1,25 +1,24 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getCurrentStaff } from '../../../../lib/auth/current';
 import { getCurrentSubject } from '../../../../lib/auth/invite-session';
-import { getDocumentUrl } from '../../../../lib/documents';
+import { readDocument } from '../../../../lib/documents';
 
 /**
  * Opens one document.
  *
- * The authorization is the read itself. `getDocumentUrl` fetches the row under
- * the caller's own scope, so a FIRM_ONLY document simply does not exist for a
- * company session — RLS removes it before any code here could check a
- * `sensitivity` column, which is the right order: checking a value you could
- * only have obtained by being allowed to see it proves nothing.
+ * The bytes are streamed through the application, not redirected to a presigned
+ * URL. They have to be — the stored object is encrypted with the owning
+ * company's data key, so a presigned URL would hand out ciphertext. The
+ * consequence is the one worth having anyway: every read is an authenticated
+ * request that writes a DOCUMENT_VIEWED row, and revoking a session revokes the
+ * read with it, which a bearer URL cannot do before it expires.
  *
- * A 302 to a short-lived signed URL rather than streaming the bytes. Unlike the
- * export, these are individual files whose disclosure is already recorded by
- * the DOCUMENT_VIEWED row written when the URL is issued, and redirecting keeps
- * large photos off the application's event loop.
+ * Authorization is the row read inside `readDocument`, under the caller's own
+ * scope. A FIRM_ONLY document does not exist for a company session, so it
+ * returns null and this returns 404 — the same answer as a document that was
+ * never there, which is the same answer it should be.
  */
 export const dynamic = 'force-dynamic';
-
-const URL_TTL_SECONDS = 120;
 
 export async function GET(
   _request: NextRequest,
@@ -33,12 +32,19 @@ export async function GET(
   const session = staff?.session ?? (await getCurrentSubject())?.session;
   if (!session) return new NextResponse(null, { status: 404 });
 
-  const document = await getDocumentUrl(session, id, URL_TTL_SECONDS);
-
-  // Out of scope, deleted, and never existed are one answer.
+  const document = await readDocument(session, id);
   if (!document) return new NextResponse(null, { status: 404 });
 
-  return NextResponse.redirect(document.url, {
-    headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, private' },
+  return new NextResponse(new Uint8Array(document.bytes), {
+    headers: {
+      // Always an attachment, and never the uploader's declared type as the
+      // response type: serving a worker-uploaded file inline under a
+      // content type they chose is how a stored XSS reaches a firm admin.
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${document.docType.toLowerCase()}-${id.slice(0, 8)}"`,
+      'Content-Length': String(document.bytes.length),
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    },
   });
 }

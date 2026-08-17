@@ -43,6 +43,13 @@
       "when": 1786968295506,
       "tag": "0005_redundant_lila_cheney",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786989947217,
+      "tag": "0006_overjoyed_gateway",
+      "breakpoints": true
     }
   ]
 }

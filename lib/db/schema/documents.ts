@@ -87,6 +87,16 @@ export const documents = pgTable(
 
     uploadedByRole: text('uploaded_by_role').notNull(),
     uploadedByUserId: uuid('uploaded_by_user_id'),
+
+    /**
+     * How the stored object is protected, or null for one written before
+     * client-side blob encryption existed.
+     *
+     * A column rather than an assumption: a deployment that has been running
+     * holds objects from both eras, and reading the wrong one as the other
+     * either fails loudly or — worse — hands out ciphertext as a PDF.
+     */
+    contentEncryption: text('content_encryption'),
     sensitivity: sensitivity('sensitivity').notNull().default('FIRM_ONLY'),
 
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
