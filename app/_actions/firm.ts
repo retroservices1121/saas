@@ -12,19 +12,26 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireFirm, requireFirmAdmin } from '../../lib/auth/current';
-import { createCompany, revokeGrant } from '../../lib/db/queries/firm';
+import {
+  createCompany,
+  inviteFirmStaff,
+  revokeGrant,
+  setStaffStatus,
+} from '../../lib/db/queries/firm';
 import { inviteOwner, inviteWorker, resendInvite } from '../../lib/db/queries/subjects';
 import { verifyStepUp } from '../../lib/auth/staff-auth';
 import { decryptField } from '../../lib/security/field-encryption';
 import { sendStaffSetupEmail } from '../../lib/notifications';
 import {
   createCompanySchema,
+  emailSchema,
   inviteOwnerSchema,
   inviteWorkerSchema,
   revealSchema,
 } from '../../lib/validation/forms';
 import { withScope, schema } from '../../lib/db/scoped';
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
 
 export interface ActionResult {
   error?: string;
@@ -263,4 +270,49 @@ export async function revealAction(
       : value;
 
   return { value: display, field };
+}
+
+// ---------------------------------------------------------------------------
+// Firm staff (spec section 2)
+// ---------------------------------------------------------------------------
+
+const inviteStaffSchema = z.object({
+  name: z.string().trim().min(1, { message: 'validation.adminName.required' }).max(200),
+  email: emailSchema,
+  role: z.enum(['FIRM_ADMIN', 'FIRM_STAFF']),
+});
+
+export async function inviteStaffAction(
+  _previous: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const { session } = await requireFirmAdmin();
+
+  const parsed = inviteStaffSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    role: formData.get('role'),
+  });
+  if (!parsed.success) return fieldErrors(parsed.error);
+
+  const invited = await inviteFirmStaff(session, parsed.data);
+
+  await sendStaffSetupEmail({
+    to: parsed.data.email,
+    locale: 'en',
+    name: parsed.data.name,
+    url: `${(process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/setup/${invited.setupToken}`,
+  });
+
+  revalidatePath('/firm/staff');
+  redirect('/firm/staff?invited=1');
+}
+
+export async function setStaffStatusAction(
+  userId: string,
+  status: 'active' | 'suspended',
+): Promise<void> {
+  const { session } = await requireFirmAdmin();
+  await setStaffStatus(session, userId, status);
+  revalidatePath('/firm/staff');
 }

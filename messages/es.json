@@ -175,6 +175,9 @@
     "export": {
       "reasonTooShort": "Indique un motivo de al menos diez caracteres.",
       "companyRequired": "Elija al menos una empresa."
+    },
+    "firmName": {
+      "required": "Introduzca el nombre del despacho."
     }
   },
   "notifications": {
@@ -312,7 +315,11 @@
       "title": "Foto de un cheque anulado",
       "hint": "Ayuda al despacho contable a confirmar los datos de su cuenta.",
       "optional": "Este paso es opcional. Puede terminar sin él.",
-      "skip": "Omitir este paso"
+      "skip": "Omitir este paso",
+      "take": "Tomar una foto",
+      "takeHint": "O elija una de su teléfono.",
+      "preview": "La foto que tomó",
+      "use": "Usar esta foto"
     },
     "notes": {
       "title": "¿Hay algo más que debamos saber?",
@@ -618,7 +625,56 @@
     },
     "nav": {
       "companies": "Empresas",
-      "export": "Exportar"
+      "export": "Exportar",
+      "staff": "Personal"
+    },
+    "staff": {
+      "title": "Personal del despacho",
+      "intro": "Todas las personas de su despacho con acceso a esta plataforma.",
+      "invited": "Invitado. Se le envió un enlace de configuración por correo.",
+      "name": "Nombre",
+      "email": "Correo electrónico",
+      "role": "Rol",
+      "status": "Estado",
+      "lastLogin": "Último inicio de sesión",
+      "never": "Nunca",
+      "you": "Usted",
+      "addTitle": "Invitar a un colega",
+      "roleHint": "El personal del despacho puede revelar un campo a la vez indicando un motivo, y no puede exportar. Los administradores además pueden exportar, gestionar al personal y añadir empresas clientes.",
+      "send": "Enviar la invitación",
+      "suspend": "Suspender",
+      "reactivate": "Reactivar",
+      "statuses": {
+        "active": "Activo",
+        "pending": "Configuración pendiente",
+        "suspended": "Suspendido"
+      }
+    },
+    "resend": {
+      "button": "Reenviar enlace",
+      "sent": "Enlace nuevo enviado"
+    },
+    "revoke": {
+      "title": "Acceso a esta empresa",
+      "hint": "Terminar el acceso quita esta empresa a todo el personal de su despacho en su siguiente solicitud. El registro de la concesión se conserva y se marca, así que sigue pudiendo saberse quién tuvo acceso y hasta cuándo.",
+      "button": "Terminar el acceso a esta empresa",
+      "confirmBody": "Esta empresa desaparecerá de su despacho de inmediato. Volver a conceder el acceso requiere al administrador de la plataforma.",
+      "confirm": "Terminar el acceso"
+    },
+    "correct": {
+      "button": "Corregir este registro",
+      "back": "Volver al trabajador",
+      "title": "Corregir un registro",
+      "intro": "Esto crea la versión {version} más uno y conserva la versión actual. No se sobrescribe nada.",
+      "identity": "Identidad",
+      "contact": "Contacto",
+      "sensitive": "Identificación fiscal y datos bancarios",
+      "sensitiveHint": "Deje estos campos en blanco salvo que el valor en sí sea incorrecto. Un campo en blanco conserva el valor guardado tal cual: no se descifra, no se muestra y no se vuelve a cifrar.",
+      "reason": "¿Qué se está corrigiendo y por qué?",
+      "reasonHint": "Al menos diez caracteres. Queda registrado de forma permanente a su nombre.",
+      "submit": "Guardar como versión nueva",
+      "done": "Corrección guardada. La versión anterior se conserva en el historial de abajo.",
+      "noRecord": "Este trabajador no tiene un registro actual que corregir."
     }
   },
   "company": {
@@ -754,6 +810,41 @@
       "type": "Ese tipo de archivo no se acepta. Use un PDF o una imagen.",
       "empty": "Elija un archivo para subir.",
       "tooLarge": "Ese archivo es demasiado grande. El límite es 25 MB."
+    }
+  },
+  "platform": {
+    "title": "Despachos",
+    "subtitle": "Recuentos y formas de actividad. Este rol no ve ningún dato de las empresas.",
+    "addFirm": "Añadir un despacho",
+    "firmCreated": "Despacho creado. Se envió un enlace de configuración a su administrador.",
+    "firm": "Despacho",
+    "status": "Estado",
+    "companies": "Empresas",
+    "staff": "Personal",
+    "active": "Activo",
+    "suspended": "Suspendido",
+    "suspend": "Suspender",
+    "reactivate": "Reactivar",
+    "suspendConfirm": "Esto cierra la sesión de todo el personal de este despacho.",
+    "noFirms": "Todavía no hay despachos.",
+    "activity": "Actividad, últimos 30 días",
+    "activityHint": "Solo acciones y volúmenes. Los motivos, los objetivos y los nombres de empresa se omiten deliberadamente: este rol no puede leer datos de trabajadores, y el motivo de una revelación suele nombrar a una persona.",
+    "occurrences": "Veces",
+    "mostRecent": "Más reciente",
+    "newFirm": {
+      "title": "Añadir un despacho",
+      "intro": "Crea el despacho y su primer administrador.",
+      "firmSection": "Despacho",
+      "name": "Nombre del despacho",
+      "contactEmail": "Correo de contacto",
+      "adminSection": "Primer administrador",
+      "adminHint": "La única cuenta que nadie más puede crear: no existe ninguna sesión de despacho que pudiera haberla creado. Recibe un enlace de 24 horas y elige su propia contraseña y su autenticador. Todo lo demás lo hace el despacho por sí mismo.",
+      "adminName": "Nombre",
+      "adminEmail": "Correo electrónico",
+      "submit": "Crear despacho"
+    },
+    "errors": {
+      "check": "Revise los campos señalados."
     }
   }
 }

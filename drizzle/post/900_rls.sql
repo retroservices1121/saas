@@ -593,6 +593,17 @@ create trigger notes_force_firm_only
 -- one current row per worker. Superseding the previous version is therefore a
 -- privileged operation: this trigger is SECURITY DEFINER so it runs as the
 -- table owner, which is the only principal holding UPDATE on the table.
+--
+-- BEFORE INSERT, not AFTER. `worker_records_current_uq` is a partial unique
+-- INDEX, and a unique index is enforced the moment the row is written — so an
+-- AFTER trigger never gets to run: the second version collides with the first
+-- and the insert fails with a duplicate key error. This was the shape of the
+-- bug that made every correction impossible while a first submission worked
+-- perfectly, which is why it survived until something wrote a second version.
+--
+-- Deferring the check instead is not available: only a unique CONSTRAINT can be
+-- deferrable, and a constraint cannot be partial, so `WHERE is_current` would
+-- have to go — and with it the ability to keep old versions at all.
 create or replace function app.supersede_previous_worker_record()
 returns trigger language plpgsql security definer set search_path = public, app as $$
 begin
@@ -609,7 +620,7 @@ $$;
 
 drop trigger if exists worker_records_supersede on worker_records;
 create trigger worker_records_supersede
-  after insert on worker_records
+  before insert on worker_records
   for each row when (new.is_current)
   execute function app.supersede_previous_worker_record();
 

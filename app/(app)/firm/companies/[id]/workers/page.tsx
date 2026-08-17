@@ -4,6 +4,7 @@ import { requireFirm } from '../../../../../../lib/auth/current';
 import { listWorkersForFirm } from '../../../../../../lib/db/queries/firm';
 import { StatusChip } from '../../../../../_components/form';
 import { maskAccount, maskTin } from '../../../../../../lib/forms/wizard';
+import ResendInvite from '../../../_components/resend-invite';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,7 @@ export default async function FirmWorkersPage({
                 <th className="px-4 py-3 font-medium">{t('firm.workers.status')}</th>
                 <th className="px-4 py-3 font-medium">{t('firm.workers.tin')}</th>
                 <th className="px-4 py-3 font-medium">{t('firm.workers.account')}</th>
+                <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
@@ -77,6 +79,20 @@ export default async function FirmWorkersPage({
                   </td>
                   <td className="tabular px-4 py-3 text-neutral-700">
                     {worker.accountLast4 ? maskAccount(worker.accountLast4) : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {/* Only for someone who has not finished. Re-inviting a
+                        worker who has submitted is a correction, which is a
+                        different action with a different audit row. */}
+                    {worker.status === 'INVITED' ||
+                    worker.status === 'IN_PROGRESS' ||
+                    worker.status === 'NEEDS_ATTENTION' ? (
+                      <ResendInvite
+                        companyId={id}
+                        subjectType="WORKER"
+                        subjectId={worker.id}
+                      />
+                    ) : null}
                   </td>
                 </tr>
               ))}

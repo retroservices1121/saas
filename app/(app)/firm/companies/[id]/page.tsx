@@ -5,6 +5,7 @@ import { getCompanyForFirm } from '../../../../../lib/db/queries/firm';
 import { getOnboardingChecklist } from '../../../../../lib/db/queries/company-profile';
 import { Card } from '../../../../_components/form';
 import { maskAccount } from '../../../../../lib/forms/wizard';
+import RevokeGrant from '../../_components/revoke-grant';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export default async function CompanyOverview({
     requireFirm(),
     getTranslations(),
   ]);
+  const isFirmAdmin = session.role === 'FIRM_ADMIN';
 
   const company = await getCompanyForFirm(session, id);
   if (!company) notFound();
@@ -84,6 +86,19 @@ export default async function CompanyOverview({
             </li>
           ))}
         </ul>
+
+        {/* Revoking is FIRM_ADMIN only, and it is the last thing on the page
+            rather than a header button — nobody should reach for it by
+            accident on the way to the workers tab. */}
+        {isFirmAdmin ? (
+          <div className="mt-6 border-t border-neutral-200 pt-4">
+            <h3 className="text-sm font-semibold">{t('firm.revoke.title')}</h3>
+            <p className="mb-3 mt-1 text-xs leading-relaxed text-neutral-600">
+              {t('firm.revoke.hint')}
+            </p>
+            <RevokeGrant companyId={id} />
+          </div>
+        ) : null}
       </Card>
     </div>
   );

@@ -5,6 +5,7 @@ import { checkOwnershipTotal } from '../../../../../../lib/validation/identity';
 import { StatusChip } from '../../../../../_components/form';
 import Reveal from '../../../_components/reveal';
 import { maskTin } from '../../../../../../lib/forms/wizard';
+import ResendInvite from '../../../_components/resend-invite';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,7 @@ export default async function FirmOwnersPage({
                 <th className="px-4 py-3 font-medium">{t('firm.owners.percent')}</th>
                 <th className="px-4 py-3 font-medium">{t('firm.owners.status')}</th>
                 <th className="px-4 py-3 font-medium">{t('firm.owners.tin')}</th>
+                <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
@@ -79,6 +81,11 @@ export default async function FirmOwnersPage({
                     ) : (
                       <span className="text-neutral-500">{t('firm.owners.notYet')}</span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {owner.status !== 'SUBMITTED' ? (
+                      <ResendInvite companyId={id} subjectType="OWNER" subjectId={owner.id} />
+                    ) : null}
                   </td>
                 </tr>
               ))}

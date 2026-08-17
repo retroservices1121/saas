@@ -433,3 +433,133 @@ export async function listNotesForFirm(session: FirmSession, companyId: string) 
       .orderBy(desc(schema.notes.createdAt)),
   );
 }
+
+// ---------------------------------------------------------------------------
+// Firm staff (spec section 2: FIRM_ADMIN "can manage firm staff")
+// ---------------------------------------------------------------------------
+
+export interface FirmStaffRow {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  status: string;
+  lastLoginAt: Date | null;
+  totpEnabledAt: Date | null;
+}
+
+/**
+ * The firm's own staff. `company_id is null` separates them from the company
+ * admins this firm created, who share the same `firm_id` but belong to a
+ * tenant below it.
+ */
+export async function listFirmStaff(session: FirmSession): Promise<FirmStaffRow[]> {
+  return withScope(session, async (db) =>
+    db
+      .select({
+        id: schema.users.id,
+        email: schema.users.email,
+        name: schema.users.name,
+        role: schema.users.role,
+        status: schema.users.status,
+        lastLoginAt: schema.users.lastLoginAt,
+        totpEnabledAt: schema.users.totpEnabledAt,
+      })
+      .from(schema.users)
+      .where(and(eq(schema.users.firmId, session.firmId), isNull(schema.users.companyId)))
+      .orderBy(desc(schema.users.createdAt)),
+  );
+}
+
+export interface InvitedStaff {
+  userId: string;
+  setupToken: string;
+}
+
+/**
+ * Adds a member of firm staff.
+ *
+ * Created `pending` with a 24-hour setup link, exactly like a company admin.
+ * The firm admin never sets a password for anyone: `users_totp_ck` refuses to
+ * let a firm user reach `active` without an enrolled authenticator, so the only
+ * path to an active firm account runs through that person's own device.
+ */
+export async function inviteFirmStaff(
+  session: FirmSession,
+  input: { name: string; email: string; role: 'FIRM_ADMIN' | 'FIRM_STAFF' },
+): Promise<InvitedStaff> {
+  if (session.role !== 'FIRM_ADMIN') {
+    throw new Error('Only a FIRM_ADMIN may manage firm staff (spec section 2).');
+  }
+
+  const userId = uuidv7();
+
+  return withScope(session, async (db) => {
+    await db.insert(schema.users).values({
+      id: userId,
+      email: input.email,
+      name: input.name,
+      role: input.role,
+      firmId: session.firmId,
+      companyId: null,
+      status: 'pending',
+    });
+
+    const setupToken = await issueSetupToken(db, userId);
+
+    await audit(db, session, {
+      action: 'GRANT_CREATED',
+      targetType: 'users',
+      targetId: userId,
+      metadata: { operation: 'staff_invited', role: input.role },
+    });
+
+    return { userId, setupToken };
+  });
+}
+
+/**
+ * Suspends or reactivates a member of firm staff.
+ *
+ * Takes effect on their next request: `resolveStaffSession` refuses any user
+ * whose status is not `active`, so a live session dies without waiting for its
+ * expiry. Suspending yourself is refused — an administrator who locks
+ * themselves out of the only FIRM_ADMIN account needs the platform admin to
+ * undo it.
+ */
+export async function setStaffStatus(
+  session: FirmSession,
+  userId: string,
+  status: 'active' | 'suspended',
+): Promise<boolean> {
+  if (session.role !== 'FIRM_ADMIN') {
+    throw new Error('Only a FIRM_ADMIN may manage firm staff (spec section 2).');
+  }
+  if (userId === session.userId) {
+    throw new Error('Refusing to change your own account status.');
+  }
+
+  return withScope(session, async (db) => {
+    const updated = await db
+      .update(schema.users)
+      .set({ status })
+      .where(
+        and(
+          eq(schema.users.id, userId),
+          eq(schema.users.firmId, session.firmId),
+          isNull(schema.users.companyId),
+        ),
+      )
+      .returning({ id: schema.users.id });
+
+    if (updated.length === 0) return false;
+
+    await audit(db, session, {
+      action: status === 'suspended' ? 'GRANT_REVOKED' : 'GRANT_CREATED',
+      targetType: 'users',
+      targetId: userId,
+      metadata: { operation: 'staff_status', status },
+    });
+    return true;
+  });
+}

@@ -51,7 +51,19 @@ export default async function FirmDocumentsPage({
             <tbody className="divide-y divide-neutral-100">
               {documents.map((document) => (
                 <tr key={document.id} className="hover:bg-neutral-50">
-                  <td className="px-4 py-3 font-medium">{t(`docType.${document.docType}`)}</td>
+                  <td className="px-4 py-3">
+                    {/* A plain link, not a fetch. The route 302s to a
+                        short-lived signed URL and writes DOCUMENT_VIEWED when it
+                        issues one. */}
+                    <a
+                      href={`/api/documents/${document.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium underline-offset-2 hover:underline"
+                    >
+                      {t(`docType.${document.docType}`)}
+                    </a>
+                  </td>
                   <td className="px-4 py-3 text-neutral-700">{document.label ?? '—'}</td>
                   <td className="px-4 py-3">
                     <StatusChip

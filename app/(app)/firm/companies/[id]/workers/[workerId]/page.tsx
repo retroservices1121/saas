@@ -11,6 +11,7 @@ import {
 import { listDocuments } from '../../../../../../../lib/documents';
 import { Card, StatusChip } from '../../../../../../_components/form';
 import Reveal from '../../../../_components/reveal';
+import ResendInvite from '../../../../_components/resend-invite';
 import { maskAccount, maskTin } from '../../../../../../../lib/forms/wizard';
 
 export const dynamic = 'force-dynamic';
@@ -25,13 +26,16 @@ export const dynamic = 'force-dynamic';
  */
 export default async function WorkerDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; workerId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ id, workerId }, { session }, t] = await Promise.all([
+  const [{ id, workerId }, { session }, t, query] = await Promise.all([
     params,
     requireFirm(),
     getTranslations(),
+    searchParams,
   ]);
 
   const workers = await listWorkersForFirm(session, id);
@@ -61,7 +65,28 @@ export default async function WorkerDetailPage({
           <h2 className="text-lg font-semibold">{worker.displayName}</h2>
           <StatusChip status={worker.status} label={t(`status.${worker.status}`)} />
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          {/* Two ways to fix a wrong value (spec section 7.8): the firm writes
+              a new version here, or re-issues a link and the worker submits a
+              fresh one themselves. */}
+          {record ? (
+            <Link
+              href={`/firm/companies/${id}/workers/${workerId}/correct`}
+              className="flex min-h-[36px] items-center rounded-md border border-neutral-300 px-3 text-sm font-medium hover:bg-neutral-50"
+            >
+              {t('firm.correct.button')}
+            </Link>
+          ) : null}
+          <ResendInvite companyId={id} subjectType="WORKER" subjectId={workerId} />
+        </div>
       </div>
+
+      {query.corrected ? (
+        <p role="status" className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-900">
+          {t('firm.correct.done')}
+        </p>
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
@@ -201,7 +226,14 @@ export default async function WorkerDetailPage({
         <ul className="mt-3 flex flex-col divide-y divide-neutral-100 text-sm">
           {documents.map((document) => (
             <li key={document.id} className="flex flex-wrap items-center gap-3 py-2">
-              <span className="font-medium">{t(`docType.${document.docType}`)}</span>
+              <a
+                href={`/api/documents/${document.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium underline-offset-2 hover:underline"
+              >
+                {t(`docType.${document.docType}`)}
+              </a>
               <span className="text-neutral-600">{document.label}</span>
               <span className="tabular text-xs text-neutral-500">
                 {Math.round(document.sizeBytes / 1024)} KB

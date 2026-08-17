@@ -38,7 +38,14 @@ export default async function CompanyDocumentsPage() {
           <ul className="mt-3 flex flex-col divide-y divide-neutral-100 text-sm">
             {documents.map((document) => (
               <li key={document.id} className="flex flex-wrap items-center gap-3 py-2.5">
-                <span className="font-medium">{t(`docType.${document.docType}`)}</span>
+                <a
+                  href={`/api/documents/${document.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium underline-offset-2 hover:underline"
+                >
+                  {t(`docType.${document.docType}`)}
+                </a>
                 <span className="text-neutral-600">{document.label ?? '—'}</span>
                 <span className="tabular ml-auto text-xs text-neutral-500">
                   {Math.round(document.sizeBytes / 1024)} KB ·{' '}

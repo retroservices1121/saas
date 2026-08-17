@@ -34,6 +34,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <Link href="/firm" className="text-neutral-600 hover:text-neutral-900">
                   {t('firm.nav.companies')}
                 </Link>
+                <Link href="/firm/staff" className="text-neutral-600 hover:text-neutral-900">
+                  {t('firm.nav.staff')}
+                </Link>
                 <Link href="/firm/export" className="text-neutral-600 hover:text-neutral-900">
                   {t('firm.nav.export')}
                 </Link>

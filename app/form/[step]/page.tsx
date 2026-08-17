@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import StepShell from '../_components/shell';
+import CheckUpload from '../_components/check-upload';
 import {
   AccountStep,
   AcknowledgeStep,
@@ -32,7 +33,6 @@ import {
   saveTinAction,
   saveTinTypeAction,
   signAction,
-  skipCheckAction,
 } from '../../_actions/form';
 import { requireSubject } from '../../../lib/auth/invite-session';
 import { maskAccount, maskTin, stepInFlow, type FormDraft } from '../../../lib/forms/wizard';
@@ -151,15 +151,16 @@ export default async function FormStepPage({
       return shell(t('form.account.title'), undefined, <AccountStep action={saveAccountAction} />);
 
     case 'check':
-      // Optional by design (spec section 8, screen 12). The upload itself is a
-      // presigned PUT from the device; skipping is a first-class outcome, not a
-      // hidden link.
+      // Optional by design (spec section 8, screen 12). Skipping is a
+      // first-class button of equal weight, not a small link underneath — a
+      // worker who has no check to hand should not feel they have failed a
+      // step.
       return shell(t('form.check.title'), t('form.check.hint'), (
         <div className="flex flex-col gap-4">
           <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-600">
             {t('form.check.optional')}
           </p>
-          <AcknowledgeStep action={skipCheckAction} label={t('form.check.skip')} />
+          <CheckUpload />
         </div>
       ));
 

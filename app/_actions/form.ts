@@ -19,6 +19,7 @@ import { consumeInvite, loadDraft, saveDraft, verifyInviteDob } from '../../lib/
 import { sealValue, sealedFromJson, sealedToJson } from '../../lib/security/field-encryption';
 import { submitOwnerForm, submitWorkerForm } from '../../lib/db/queries/subjects';
 import { captureSignature } from '../../lib/esign/sign';
+import { uploadDocument, UploadRejectedError } from '../../lib/documents';
 import { withScope, schema } from '../../lib/db/scoped';
 import {
   addressSchema,
@@ -276,6 +277,54 @@ export async function saveAccountAction(
 
 export async function skipCheckAction(): Promise<FormState> {
   return advance('check', {});
+}
+
+/**
+ * The voided check photo (spec section 8, screen 12).
+ *
+ * The image is downscaled to 2000px in the browser before it is sent — a modern
+ * phone camera produces 4-6 MB, and a worker on a cellular connection in a
+ * parking lot is the person least able to afford uploading it. Downscaling also
+ * strips EXIF, which on a phone photo includes GPS coordinates: a worker
+ * photographing a check at their kitchen table should not be handing over their
+ * home address as a side effect.
+ *
+ * The bytes arrive through this action rather than by a presigned PUT direct to
+ * the bucket. A presigned PUT would save one hop, at the cost of a URL that
+ * writes to storage without an authenticated request behind it — and this is
+ * the one upload path reachable by someone with no account.
+ */
+export async function uploadVoidedCheckAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const current = await getCurrentSubject();
+  if (!current) redirect('/i/expired');
+
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: 'documents.errors.empty' };
+  }
+
+  try {
+    const uploaded = await uploadDocument(current.session, {
+      companyId: current.session.companyId,
+      subjectType: current.invite.subjectType,
+      subjectId: current.session.subjectId,
+      // FIRM_ONLY by the rule, by the doc type, and by the database trigger.
+      // Three mechanisms, because a voided check is a full account number in an
+      // image and the company must never see it.
+      docType: 'VOIDED_CHECK',
+      label: 'Voided check',
+      contentType: file.type,
+      bytes: Buffer.from(await file.arrayBuffer()),
+    });
+
+    return advance('check', { voidedCheckDocumentId: uploaded.id });
+  } catch (err) {
+    if (err instanceof UploadRejectedError) return { error: err.key };
+    throw err;
+  }
 }
 
 /**
