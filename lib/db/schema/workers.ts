@@ -108,8 +108,13 @@ export const workerRecords = pgTable(
     phoneE164: text('phone_e164'),
 
     tinType: tinType('tin_type').notNull(),
-    tinEnc: bytea('tin_enc').notNull(),
-    tinLast4: text('tin_last4').notNull(),
+    // Nullable ONLY because of the retention purge (spec section 13), which
+    // nulls every `_enc` and `_last4` column while keeping the row skeleton and
+    // the audit trail that points at it. A live record must still carry a tax
+    // ID, and `worker_records_purge_ck` in migration 905 enforces exactly that:
+    // tin_enc may be null if and only if purged_at is set.
+    tinEnc: bytea('tin_enc'),
+    tinLast4: text('tin_last4'),
 
     bankName: text('bank_name'),
     bankAccountType: bankAccountType('bank_account_type'),
@@ -125,6 +130,9 @@ export const workerRecords = pgTable(
     submittedVia: submittedVia('submitted_via').notNull(),
     submittedIp: inet('submitted_ip'),
     submittedUserAgent: text('submitted_user_agent'),
+
+    /** Set by the retention job. The row stays; its sensitive columns do not. */
+    purgedAt: timestamp('purged_at', { withTimezone: true }),
 
     ...timestamps,
   },

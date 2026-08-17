@@ -540,7 +540,8 @@
       "current": "Actual",
       "noVersions": "Todavía no hay envíos.",
       "documents": "Documentos",
-      "noDocuments": "No hay documentos de este trabajador."
+      "noDocuments": "No hay documentos de este trabajador.",
+      "purged": "Depurado según la política de retención"
     },
     "owners": {
       "title": "{count} propietarios",
@@ -589,6 +590,35 @@
       "check": "Revise los campos señalados.",
       "notFound": "No se encontró ese registro.",
       "noValue": "No hay ningún valor registrado para ese campo."
+    },
+    "export": {
+      "title": "Exportar",
+      "intro": "Genera un archivo protegido con contraseña que contiene workers.csv, owners.csv y los documentos registrados. El archivo se elimina de la plataforma 24 horas después de crearse.",
+      "companies": "Empresas",
+      "range": "Intervalo de fechas",
+      "from": "Desde",
+      "to": "Hasta",
+      "sensitive": "Datos sensibles",
+      "sensitiveLabel": "Incluir los números de identificación fiscal y de cuenta bancaria sin enmascarar",
+      "sensitiveWarning": "Cada valor se descifrará individualmente y cada descifrado queda registrado en el historial de auditoría a su nombre y con el motivo indicado abajo. Déjelo sin marcar salvo que el trabajo realmente requiera los números completos.",
+      "reason": "¿Por qué se necesita esta exportación?",
+      "reasonHint": "Al menos diez caracteres. Queda registrado de forma permanente y se incluye en el archivo.",
+      "create": "Crear la exportación",
+      "building": "Generando el archivo…",
+      "readyTitle": "Su exportación está lista",
+      "readyBody": "{workers} trabajadores, {owners} propietarios, {documents} documentos.",
+      "passwordTitle": "Contraseña del archivo",
+      "passwordBody": "Se muestra una sola vez. No se guarda y nunca se le enviará por correo ni por mensaje de texto. Cópiela en un lugar seguro antes de salir de esta página.",
+      "passwordWarning": "Si la pierde, el archivo no podrá abrirse y tendrá que crear una exportación nueva.",
+      "file": "Archivo",
+      "size": "Tamaño",
+      "expires": "Se elimina de la plataforma el",
+      "download": "Descargar el archivo",
+      "failed": "No se pudo generar la exportación. No se divulgó nada; inténtelo de nuevo."
+    },
+    "nav": {
+      "companies": "Empresas",
+      "export": "Exportar"
     }
   },
   "company": {

@@ -48,6 +48,9 @@ export const companyOwners = pgTable(
     tinLast4: text('tin_last4'),
     submittedAt: timestamp('submitted_at', { withTimezone: true }),
 
+    /** Set by the retention job, as on worker_records. */
+    purgedAt: timestamp('purged_at', { withTimezone: true }),
+
     ...timestamps,
   },
   (t) => [index('owners_company_idx').on(t.companyId)],

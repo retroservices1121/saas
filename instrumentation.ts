@@ -8,5 +8,11 @@ export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { installLogRedaction } = await import('./lib/security/redaction');
     installLogRedaction();
+
+    // Refuses to start in production while the e-signature documents are still
+    // the placeholder text. A launch checklist item that lives in a document
+    // gets missed; one that stops the process from booting does not.
+    const { assertDocumentsApproved } = await import('./lib/esign/documents');
+    assertDocumentsApproved();
   }
 }

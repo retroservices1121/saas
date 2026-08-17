@@ -18,7 +18,9 @@
     "test": "vitest run",
     "test:isolation": "vitest run tests/isolation",
     "test:watch": "vitest",
-    "db:seed": "tsx scripts/seed-demo.ts"
+    "db:seed": "tsx scripts/seed-demo.ts",
+    "jobs": "tsx scripts/jobs.ts",
+    "zip:verify": "python scripts/verify-zip.py"
   },
   "dependencies": {
     "@noble/hashes": "^2.3.0",

@@ -22,9 +22,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col bg-neutral-50">
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <Link href={home} className="text-sm font-semibold tracking-tight">
-            {t('app.name')}
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href={home} className="text-sm font-semibold tracking-tight">
+              {t('app.name')}
+            </Link>
+
+            {/* Export is FIRM_ADMIN only (spec section 7.7). FIRM_STAFF does
+                not see the link, and requireFirmAdmin refuses the page. */}
+            {session.role === 'FIRM_ADMIN' ? (
+              <nav className="flex items-center gap-3 text-sm">
+                <Link href="/firm" className="text-neutral-600 hover:text-neutral-900">
+                  {t('firm.nav.companies')}
+                </Link>
+                <Link href="/firm/export" className="text-neutral-600 hover:text-neutral-900">
+                  {t('firm.nav.export')}
+                </Link>
+              </nav>
+            ) : null}
+          </div>
 
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-neutral-600 sm:inline">

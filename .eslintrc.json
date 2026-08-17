@@ -1,5 +1,8 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"],
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
   "rules": {
     "no-restricted-imports": [
       "error",
@@ -16,11 +19,19 @@
         ],
         "patterns": [
           {
-            "group": ["**/lib/db/client", "@/lib/db/client", "../client", "./client"],
+            "group": [
+              "**/lib/db/client",
+              "@/lib/db/client",
+              "../client",
+              "./client"
+            ],
             "message": "Layer 2 violation. The raw Drizzle client is unscoped and bypasses RLS session variables. Import withScope from lib/db/scoped.ts instead."
           },
           {
-            "group": ["**/lib/security/aes", "@/lib/security/aes"],
+            "group": [
+              "**/lib/security/aes",
+              "@/lib/security/aes"
+            ],
             "message": "Only lib/security/field-encryption.ts may import the AES primitives. Use encryptField/decryptField."
           }
         ]
@@ -40,13 +51,23 @@
   },
   "overrides": [
     {
-      "files": ["lib/db/scoped.ts", "lib/db/client.ts", "scripts/**/*.ts", "tests/**/*.ts", "drizzle.config.ts"],
+      "files": [
+        "lib/db/scoped.ts",
+        "lib/db/client.ts",
+        "lib/jobs/**/*.ts",
+        "scripts/**/*.ts",
+        "tests/**/*.ts",
+        "drizzle.config.ts"
+      ],
       "rules": {
         "no-restricted-imports": "off"
       }
     },
     {
-      "files": ["lib/security/aes.ts", "lib/security/field-encryption.ts"],
+      "files": [
+        "lib/security/aes.ts",
+        "lib/security/field-encryption.ts"
+      ],
       "rules": {
         "no-restricted-syntax": "off"
       }

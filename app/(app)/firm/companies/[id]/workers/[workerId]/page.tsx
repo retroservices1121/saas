@@ -114,13 +114,23 @@ export default async function WorkerDetailPage({
                   {t(`firm.worker.tin.${masked.tinType}`)}
                 </dt>
                 <dd className="mt-1">
-                  <Reveal
-                    field="tin"
-                    recordType="WORKER_RECORD"
-                    recordId={masked.id}
-                    masked={maskTin(masked.tinLast4)}
-                    label={t(`firm.worker.tin.${masked.tinType}`)}
-                  />
+                  {/*
+                    Absent means purged: the retention job nulls the sensitive
+                    columns four years on and keeps the row, so an old record
+                    still appears in the version history with nothing left to
+                    reveal (spec section 13).
+                  */}
+                  {masked.tinLast4 ? (
+                    <Reveal
+                      field="tin"
+                      recordType="WORKER_RECORD"
+                      recordId={masked.id}
+                      masked={maskTin(masked.tinLast4)}
+                      label={t(`firm.worker.tin.${masked.tinType}`)}
+                    />
+                  ) : (
+                    <span className="text-sm text-neutral-500">{t('firm.worker.purged')}</span>
+                  )}
                 </dd>
               </div>
 

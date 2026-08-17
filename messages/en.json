@@ -534,7 +534,8 @@
       "current": "Current",
       "noVersions": "No submissions yet.",
       "documents": "Documents",
-      "noDocuments": "No documents for this worker."
+      "noDocuments": "No documents for this worker.",
+      "purged": "Purged under the retention policy"
     },
     "owners": {
       "title": "{count} owners",
@@ -583,6 +584,35 @@
       "check": "Please check the highlighted fields.",
       "notFound": "That record could not be found.",
       "noValue": "There is no value recorded for that field."
+    },
+    "export": {
+      "title": "Export",
+      "intro": "Builds a password-protected archive containing workers.csv, owners.csv, and the documents on file. The archive is deleted from the platform 24 hours after it is created.",
+      "companies": "Companies",
+      "range": "Date range",
+      "from": "From",
+      "to": "To",
+      "sensitive": "Sensitive fields",
+      "sensitiveLabel": "Include unmasked tax ID and bank account numbers",
+      "sensitiveWarning": "Every value will be decrypted individually and each decryption is recorded in the audit log against your name and the reason below. Leave this unchecked unless the work genuinely requires the full numbers.",
+      "reason": "Why is this export needed?",
+      "reasonHint": "At least ten characters. Recorded permanently and included in the archive.",
+      "create": "Create the export",
+      "building": "Building the archive…",
+      "readyTitle": "Your export is ready",
+      "readyBody": "{workers} workers, {owners} owners, {documents} documents.",
+      "passwordTitle": "Archive password",
+      "passwordBody": "This is shown once. It is not stored, and it will never be emailed or texted to you. Copy it somewhere safe before you leave this page.",
+      "passwordWarning": "If you lose it, the archive cannot be opened and you will need to create a new export.",
+      "file": "File",
+      "size": "Size",
+      "expires": "Deleted from the platform at",
+      "download": "Download the archive",
+      "failed": "The export could not be built. Nothing was disclosed; try again."
+    },
+    "nav": {
+      "companies": "Companies",
+      "export": "Export"
     }
   },
   "company": {

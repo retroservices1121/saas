@@ -334,14 +334,14 @@ describe('7.4 / 7.5 the worker path', () => {
 
   it('a reveal writes its audit row before it returns plaintext', async () => {
     const record = await getWorkerRecordForFirm(firmSession, workerId);
-    expect(record).not.toBeNull();
+    expect(record?.tinEnc).not.toBeNull();
 
     const before = await readRow<{ n: string }>(
       "select count(*)::text as n from audit_log where company_id = $1 and action = 'REVEAL_TIN'",
       companyId,
     );
 
-    const plaintext = await decryptField(record!.tinEnc, {
+    const plaintext = await decryptField(record!.tinEnc!, {
       session: firmSession,
       action: 'REVEAL_TIN',
       reason: 'Preparing the year-end 1099 filing for this worker.',
@@ -364,7 +364,7 @@ describe('7.4 / 7.5 the worker path', () => {
   it('refuses a reveal with a reason shorter than ten characters', async () => {
     const record = await getWorkerRecordForFirm(firmSession, workerId);
     await expect(
-      decryptField(record!.tinEnc, {
+      decryptField(record!.tinEnc!, {
         session: firmSession,
         action: 'REVEAL_TIN',
         reason: 'because',
@@ -384,7 +384,7 @@ describe('7.4 / 7.5 the worker path', () => {
     );
 
     await expect(
-      decryptField(record!.tinEnc, {
+      decryptField(record!.tinEnc!, {
         session: companySession,
         action: 'REVEAL_TIN',
         reason: 'I would like to see this tax ID please.',
