@@ -368,8 +368,41 @@ worst possible moment to discover it.
 Rotation is `vault write -f transit/keys/onboarding/rotate`. New DEKs wrap under
 v2; every existing `vault:v1:` DEK keeps unwrapping. Nothing is re-encrypted.
 
-### Jobs
+### Jobs — a second Railway service
 
-`pnpm jobs nightly` is not scheduled by anything yet. Railway cron, or any
-scheduler that can run a command, needs to invoke it daily — otherwise reminders
-never send and nothing is ever purged.
+Reminders and retention do not run unless something schedules them. On Railway
+that is a **second service from the same repo**, with a cron schedule and no
+healthcheck:
+
+1. New service → same GitHub repo.
+2. Variables → `RAILWAY_CONFIG_PATH = railway.cron.json`, and give it the same
+   `ADMIN_DATABASE_URL`, `KMS_PROVIDER`, `VAULT_*`, `STORAGE_PROVIDER`, `S3_*`,
+   `SMS_PROVIDER` and `TWILIO_*` values as the web service.
+3. Confirm Settings → Cron Schedule reads `0 9 * * *` (UTC). Set it there if the
+   config file did not apply it.
+
+`railway.cron.json` sets the start command to `pnpm jobs nightly` and
+`restartPolicyType: NEVER` — a cron service that restarts on exit is an infinite
+loop, not a schedule.
+
+Two failure modes are worth knowing about, because both are silent:
+
+**A job that does not exit stops the schedule permanently.** Railway skips the
+next execution while the previous one is still Active, so a lingering
+keep-alive socket — the AWS SDK's pool will do it — turns one hung run into
+"reminders stopped going out three weeks ago". `scripts/jobs.ts` calls
+`process.exit` explicitly rather than trusting the event loop to drain.
+
+**Two overlapping runs send duplicate reminders.** Railway's skip covers the
+scheduled case, not an operator running `pnpm jobs nightly` by hand during one,
+or a second environment pointed at the same database. The runner takes a
+Postgres advisory lock and exits 0 with "another job run holds the lock" if it
+cannot get it — the jobs are each idempotent, but not against themselves
+running at the same instant.
+
+Any scheduler works, not just Railway's: the command is `pnpm jobs nightly` and
+it is safe to invoke from anywhere, as often as you like.
+
+```bash
+pnpm jobs nightly --dry-run   # what would happen, without doing it
+```

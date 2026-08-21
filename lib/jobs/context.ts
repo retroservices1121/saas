@@ -87,3 +87,49 @@ export async function auditSystem(
     )
   `;
 }
+
+/**
+ * A cluster-wide lock, so two schedulers cannot run the same job at once.
+ *
+ * Railway skips a cron execution while the previous one is still Active, which
+ * covers the ordinary case. It does not cover an operator running
+ * `pnpm jobs nightly` by hand while the scheduled run is in flight, or a second
+ * environment pointed at the same database, or a migration from Railway cron to
+ * something else that overlaps during the switch.
+ *
+ * Two concurrent reminder runs are the case that bites: both read
+ * `reminders_sent = 0` for the same worker before either writes, and the worker
+ * gets two text messages. The jobs are individually idempotent; they are not
+ * idempotent against themselves running twice at the same instant.
+ *
+ * `pg_try_advisory_lock` returns immediately rather than queueing, which is
+ * what a scheduled job wants: skip this run and take the next one, rather than
+ * pile up behind a stuck predecessor.
+ *
+ * The lock lives on the session and is released when the connection closes, so
+ * a crashed job does not leave it held.
+ */
+/**
+ * An arbitrary constant. Advisory lock keys share one namespace across the
+ * whole database, so this is written down rather than derived from a string
+ * hash — a collision with something else that takes advisory locks would be
+ * invisible until two unrelated things quietly blocked each other.
+ */
+const JOB_LOCK_KEY = 8_154_209_311;
+
+export async function withJobLock<T>(
+  sql: AdminSql,
+  fn: () => Promise<T>,
+): Promise<T | 'skipped'> {
+  const [row] = await sql<{ locked: boolean }[]>`
+    select pg_try_advisory_lock(${JOB_LOCK_KEY}) as locked
+  `;
+
+  if (!row?.locked) return 'skipped';
+
+  try {
+    return await fn();
+  } finally {
+    await sql`select pg_advisory_unlock(${JOB_LOCK_KEY})`;
+  }
+}
