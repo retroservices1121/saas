@@ -167,8 +167,13 @@ export async function resendInvite(
   },
 ): Promise<IssuedInvite> {
   const { invite, companyName, phoneE164, locale } = await withScope(session, async (db) => {
-    const contact = await readSubjectContact(db, params.subjectType, params.subjectId);
-    if (!contact) throw new Error('No such subject in scope.');
+    const contact = await readSubjectContact(
+      db,
+      params.subjectType,
+      params.subjectId,
+      params.companyId,
+    );
+    if (!contact) throw new Error('No such subject in this company.');
 
     const expectedDob = await readKnownDob(db, session, params);
 
@@ -209,7 +214,14 @@ async function readKnownDob(
   session: Session,
   params: { subjectType: 'WORKER' | 'OWNER'; subjectId: string },
 ): Promise<string | undefined> {
-  if (session.kind !== 'firm') return undefined;
+  // Throws rather than returning undefined. Failing open here would hand a
+  // company session a link whose gate pins on first visit — and the company
+  // admin is the party the gate exists to exclude, so they would pin a date of
+  // their choosing and take over a worker who had already submitted. No caller
+  // does this today; the signature allows it, so the function refuses it.
+  if (session.kind !== 'firm') {
+    throw new Error('Only a firm session may seed the date-of-birth gate.');
+  }
 
   if (params.subjectType === 'WORKER') {
     const rows = await db
@@ -242,10 +254,24 @@ async function readCompanyName(db: ScopedDb, companyId: string): Promise<string>
   return rows[0]?.legalName ?? '';
 }
 
+/**
+ * The subject's contact details — looked up by id AND company.
+ *
+ * The company predicate is not redundant with RLS. A firm holding grants on two
+ * companies passes `can_read_company` for either, so a subject id from company A
+ * paired with company B would resolve happily and mint an invite whose
+ * `company_id` and `subject_id` disagree. The resulting subject session carries
+ * B, and everything the person then submits is written under B and sealed with
+ * B's data key — a worker's record filed under a company they do not work for.
+ *
+ * Both ids arrive from the client, so neither can be trusted to agree with the
+ * other.
+ */
 async function readSubjectContact(
   db: ScopedDb,
   subjectType: 'WORKER' | 'OWNER',
   subjectId: string,
+  companyId: string,
 ): Promise<{ phoneE164: string; preferredLocale: Locale } | null> {
   if (subjectType === 'WORKER') {
     const rows = await db
@@ -254,7 +280,7 @@ async function readSubjectContact(
         preferredLocale: schema.workers.preferredLocale,
       })
       .from(schema.workers)
-      .where(eq(schema.workers.id, subjectId))
+      .where(and(eq(schema.workers.id, subjectId), eq(schema.workers.companyId, companyId)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -265,7 +291,12 @@ async function readSubjectContact(
       preferredLocale: schema.companyOwners.preferredLocale,
     })
     .from(schema.companyOwners)
-    .where(eq(schema.companyOwners.id, subjectId))
+    .where(
+      and(
+        eq(schema.companyOwners.id, subjectId),
+        eq(schema.companyOwners.companyId, companyId),
+      ),
+    )
     .limit(1);
   return rows[0] ?? null;
 }

@@ -18,17 +18,11 @@ import {
   revokeGrant,
   setStaffStatus,
 } from '../../lib/db/queries/firm';
-import { inviteOwner, inviteWorker, resendInvite } from '../../lib/db/queries/subjects';
+import { resendInvite } from '../../lib/db/queries/subjects';
 import { verifyStepUp } from '../../lib/auth/staff-auth';
 import { decryptField } from '../../lib/security/field-encryption';
 import { sendStaffSetupEmail } from '../../lib/notifications';
-import {
-  createCompanySchema,
-  emailSchema,
-  inviteOwnerSchema,
-  inviteWorkerSchema,
-  revealSchema,
-} from '../../lib/validation/forms';
+import { createCompanySchema, emailSchema, revealSchema } from '../../lib/validation/forms';
 import { withScope, schema } from '../../lib/db/scoped';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -101,52 +95,13 @@ export async function revokeGrantAction(companyId: string): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // Invitations
+//
+// There is no firm-side "invite a worker" action. Two existed, unreferenced by
+// any component — and every export from a `'use server'` module is a live HTTP
+// endpoint whether or not the UI calls it. Unreviewed surface on a module that
+// also holds the reveal is not worth keeping for a feature nobody asked for;
+// the company invites its own people, and a firm re-issues an existing link.
 // ---------------------------------------------------------------------------
-
-export async function firmInviteWorkerAction(
-  companyId: string,
-  _previous: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const { session } = await requireFirm();
-
-  const parsed = inviteWorkerSchema.safeParse({
-    displayName: formData.get('displayName'),
-    workerType: formData.get('workerType'),
-    phoneE164: formData.get('phoneE164'),
-    preferredLocale: formData.get('preferredLocale'),
-    jobTitle: formData.get('jobTitle') || null,
-    startDate: formData.get('startDate') || null,
-    payType: formData.get('payType') || null,
-    payFrequency: formData.get('payFrequency') || null,
-    workState: formData.get('workState') || null,
-  });
-  if (!parsed.success) return fieldErrors(parsed.error);
-
-  await inviteWorker(session, companyId, parsed.data);
-  revalidatePath(`/firm/companies/${companyId}/workers`);
-  redirect(`/firm/companies/${companyId}/workers`);
-}
-
-export async function firmInviteOwnerAction(
-  companyId: string,
-  _previous: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const { session } = await requireFirm();
-
-  const parsed = inviteOwnerSchema.safeParse({
-    displayName: formData.get('displayName'),
-    ownershipPercent: formData.get('ownershipPercent') || null,
-    phoneE164: formData.get('phoneE164'),
-    preferredLocale: formData.get('preferredLocale'),
-  });
-  if (!parsed.success) return fieldErrors(parsed.error);
-
-  await inviteOwner(session, companyId, parsed.data);
-  revalidatePath(`/firm/companies/${companyId}/owners`);
-  redirect(`/firm/companies/${companyId}/owners`);
-}
 
 /** A lost text message, an expired link, or a correction the worker makes themselves. */
 export async function resendInviteAction(params: {
@@ -257,7 +212,15 @@ export async function revealAction(
     session,
     action: field === 'tin' ? 'REVEAL_TIN' : 'REVEAL_BANK',
     reason,
-    targetType: recordType === 'WORKER_RECORD' ? 'worker_records' : 'company_owners',
+    // Three record types, not two. A company bank reveal used to be filed as
+    // `company_owners` with the company's id — a pointer at a row that does not
+    // exist, in the one artifact an incident review depends on.
+    targetType:
+      recordType === 'WORKER_RECORD'
+        ? 'worker_records'
+        : recordType === 'OWNER'
+          ? 'company_owners'
+          : 'companies',
     targetId: recordId,
     companyId: found.companyId,
   });

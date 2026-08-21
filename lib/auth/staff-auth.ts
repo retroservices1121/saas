@@ -53,6 +53,17 @@ const LOCKOUT_MS = 15 * 60 * 1000;
 const THROTTLE_WINDOW_MS = 15 * 60 * 1000;
 const THROTTLE_MAX = 20;
 
+/**
+ * Wrong second-factor codes tolerated in the window, per user.
+ *
+ * Lower than the password limit because the search space is smaller. A TOTP
+ * code is six digits and the accept window spans three time steps, so a single
+ * guess lands with probability about 3 in a million — which sounds safe until
+ * you notice that nothing was counting the guesses. Five minutes of unlimited
+ * attempts is a coin flip.
+ */
+const TOTP_MAX_FAILURES = 5;
+
 const TOKEN_BYTES = 32;
 
 export const SESSION_COOKIE =
@@ -61,6 +72,45 @@ export const SESSION_COOKIE =
 export interface RequestContext {
   ip?: string | undefined;
   userAgent?: string | undefined;
+}
+
+/**
+ * Failed attempts against one identifier inside the window.
+ *
+ * `login_attempts` is keyed on a free-text identifier rather than a user id, so
+ * the same table counts password attempts (keyed on the email address, which
+ * means attempts against an address that does not exist are counted too) and
+ * second-factor attempts (keyed on `totp:<userId>`, since by then the user is
+ * known).
+ */
+async function countFailures(db: ScopedDb, identifier: string): Promise<number> {
+  const [row] = await db
+    .select({ failures: sql<number>`count(*)::int` })
+    .from(schema.loginAttempts)
+    .where(
+      and(
+        eq(schema.loginAttempts.identifier, identifier),
+        eq(schema.loginAttempts.succeeded, false),
+        gt(schema.loginAttempts.createdAt, new Date(Date.now() - THROTTLE_WINDOW_MS)),
+      ),
+    );
+  return row?.failures ?? 0;
+}
+
+async function recordAttempt(
+  db: ScopedDb,
+  identifier: string,
+  succeeded: boolean,
+  ip?: string | undefined,
+): Promise<void> {
+  await db
+    .insert(schema.loginAttempts)
+    .values({ identifier, ip: ip ?? null, succeeded });
+}
+
+/** The throttle key for second-factor attempts by a known user. */
+function totpKey(userId: string): string {
+  return `totp:${userId}`;
 }
 
 /** Tokens are compared by hash; the raw value exists only in the cookie or the email. */
@@ -96,17 +146,7 @@ export async function login(
 
   return withScope(session, async (db) => {
     // --- throttle, before touching the user row ---------------------------
-    const since = new Date(Date.now() - THROTTLE_WINDOW_MS);
-    const [{ failures = 0 } = { failures: 0 }] = await db
-      .select({ failures: sql<number>`count(*)::int` })
-      .from(schema.loginAttempts)
-      .where(
-        and(
-          eq(schema.loginAttempts.identifier, identifier),
-          eq(schema.loginAttempts.succeeded, false),
-          gt(schema.loginAttempts.createdAt, since),
-        ),
-      );
+    const failures = await countFailures(db, identifier);
 
     if (failures >= THROTTLE_MAX) {
       await audit(db, session, {
@@ -141,11 +181,7 @@ export async function login(
     const check = verifyPassword(password, user?.passwordHash ?? null);
 
     if (!user || !check.valid) {
-      await db.insert(schema.loginAttempts).values({
-        identifier,
-        ip: request.ip ?? null,
-        succeeded: false,
-      });
+      await recordAttempt(db, identifier, false, request.ip);
       await audit(db, session, {
         action: 'LOGIN_FAILURE',
         actorUserId: user?.id ?? null,
@@ -201,15 +237,19 @@ export async function login(
         .where(eq(schema.users.id, user.id));
     }
 
-    await db.insert(schema.loginAttempts).values({
-      identifier,
-      ip: request.ip ?? null,
-      succeeded: true,
-    });
-    await db
-      .update(schema.users)
-      .set({ failedLoginCount: 0, lockedUntil: null })
-      .where(eq(schema.users.id, user.id));
+    // Deliberately NOT resetting failedLoginCount or lockedUntil here.
+    //
+    // A correct password is half an authentication, and treating it as the
+    // whole one turned the throttle into something an attacker could clear at
+    // will: hold a valid password, and every fresh pending session wiped the
+    // lockout and inserted a `succeeded: true` row that the failure count
+    // ignores. The counters are cleared in completeTotp, once both factors are
+    // in.
+    //
+    // The success row is still recorded, because "the password was right at
+    // 03:12" is exactly what an incident review wants to know even when the
+    // second factor then failed.
+    await recordAttempt(db, identifier, true, request.ip);
 
     const token = newToken();
     const now = Date.now();
@@ -233,8 +273,10 @@ export async function login(
 // ---------------------------------------------------------------------------
 
 export type TotpOutcome =
-  | { status: 'ok'; userId: string }
+  /** `token` is a NEW session token. The pending one is revoked — see below. */
+  | { status: 'ok'; userId: string; token: string }
   | { status: 'invalid' }
+  | { status: 'throttled' }
   | { status: 'expired' };
 
 /**
@@ -276,10 +318,35 @@ export async function completeTotp(
     }
     if (!row.secretEnc) return { status: 'invalid' } as const;
 
+    // Second-factor attempts are counted, and they were not before. Without
+    // this the pending session was five minutes of unlimited six-digit guesses
+    // — and because a correct password used to clear the lockout, an attacker
+    // holding one could mint fresh windows indefinitely.
+    if ((await countFailures(db, totpKey(row.userId))) >= TOTP_MAX_FAILURES) {
+      await audit(db, session, {
+        action: 'LOGIN_FAILURE',
+        actorUserId: row.userId,
+        actorRole: row.role,
+        firmId: row.firmId,
+        metadata: { reason: 'totp_throttled' },
+      });
+      return { status: 'throttled' } as const;
+    }
+
     const secret = await decryptPlatformField('totp', row.secretEnc);
     const result = verifyTotp(secret, code, row.lastCounter);
 
     if (!result.valid) {
+      await recordAttempt(db, totpKey(row.userId), false, request.ip);
+
+      // The pending session dies with the wrong code. Re-authenticating costs
+      // the password again, so a guessing run cannot reuse one window — and
+      // each new window is itself counted by the password throttle.
+      await db
+        .update(schema.staffSessions)
+        .set({ revokedAt: new Date() })
+        .where(eq(schema.staffSessions.id, row.sessionId));
+
       await audit(db, session, {
         action: 'LOGIN_FAILURE',
         actorUserId: row.userId,
@@ -290,20 +357,65 @@ export async function completeTotp(
       return { status: 'invalid' } as const;
     }
 
-    await db
+    // Conditional on the counter still being where we read it. A plain
+    // overwrite is a read-then-write race under READ COMMITTED: two requests
+    // carrying the same code — a phishing proxy relaying the victim's, say —
+    // both read the stale counter, both pass, and both get a session. The
+    // affected-row count is what makes the check atomic.
+    const spent = await db
       .update(schema.users)
       .set({ totpLastCounter: result.counter!, lastLoginAt: new Date() })
-      .where(eq(schema.users.id, row.userId));
+      .where(
+        and(
+          eq(schema.users.id, row.userId),
+          row.lastCounter == null
+            ? isNull(schema.users.totpLastCounter)
+            : eq(schema.users.totpLastCounter, row.lastCounter),
+        ),
+      )
+      .returning({ id: schema.users.id });
 
+    if (spent.length === 0) {
+      // Somebody else spent this counter between our read and our write.
+      await recordAttempt(db, totpKey(row.userId), false, request.ip);
+      return { status: 'invalid' } as const;
+    }
+
+    // Both factors are in, so the password counters are cleared here rather
+    // than at the password step.
+    await db
+      .update(schema.users)
+      .set({ failedLoginCount: 0, lockedUntil: null })
+      .where(eq(schema.users.id, row.userId));
+    await recordAttempt(db, totpKey(row.userId), true, request.ip);
+
+    // Rotate the token rather than promote the row in place.
+    //
+    // The pending token is a secret that is worth almost nothing — a row that
+    // can do exactly one thing, accept a code — and promoting in place turns
+    // that same secret into a twelve-hour session. Anyone who observed it
+    // during the pending window (a shared browser, a proxy log, a Set-Cookie
+    // captured in a trace, plain HTTP outside production where the cookie is
+    // not Secure) would hold a live session the moment the real user typed
+    // their code. Issuing a new secret at the privilege boundary is what severs
+    // that; it is the textbook fix for session fixation and it costs one insert.
     const now = Date.now();
+    const rotated = newToken();
+
+    await db.insert(schema.staffSessions).values({
+      userId: row.userId,
+      tokenHash: hashToken(rotated),
+      totpVerifiedAt: new Date(),
+      expiresAt: new Date(now + IDLE_MS),
+      absoluteExpiresAt: new Date(now + ABSOLUTE_MS),
+      ip: request.ip ?? null,
+      userAgent: request.userAgent ?? null,
+    });
+
+    // The pending row is spent, not left to expire on its own.
     await db
       .update(schema.staffSessions)
-      .set({
-        totpVerifiedAt: new Date(),
-        lastSeenAt: new Date(),
-        expiresAt: new Date(now + IDLE_MS),
-        absoluteExpiresAt: new Date(now + ABSOLUTE_MS),
-      })
+      .set({ revokedAt: new Date() })
       .where(eq(schema.staffSessions.id, row.sessionId));
 
     await audit(db, session, {
@@ -315,7 +427,7 @@ export async function completeTotp(
       targetId: row.userId,
     });
 
-    return { status: 'ok', userId: row.userId } as const;
+    return { status: 'ok', userId: row.userId, token: rotated } as const;
   });
 }
 
@@ -472,14 +584,35 @@ export async function verifyStepUp(
     const row = rows[0];
     if (!row?.secretEnc) return false;
 
+    // A reveal is behind this, so an authenticated firm user brute-forcing
+    // their own step-up would reach a tax ID without their phone.
+    if ((await countFailures(db, totpKey(userId))) >= TOTP_MAX_FAILURES) return false;
+
     const secret = await decryptPlatformField('totp', row.secretEnc);
     const result = verifyTotp(secret, code, row.lastCounter);
-    if (!result.valid) return false;
+    if (!result.valid) {
+      await recordAttempt(db, totpKey(userId), false);
+      return false;
+    }
 
-    await db
+    // Conditional, for the same reason as completeTotp.
+    const spent = await db
       .update(schema.users)
       .set({ totpLastCounter: result.counter! })
-      .where(eq(schema.users.id, userId));
+      .where(
+        and(
+          eq(schema.users.id, userId),
+          row.lastCounter == null
+            ? isNull(schema.users.totpLastCounter)
+            : eq(schema.users.totpLastCounter, row.lastCounter),
+        ),
+      )
+      .returning({ id: schema.users.id });
+
+    if (spent.length === 0) {
+      await recordAttempt(db, totpKey(userId), false);
+      return false;
+    }
 
     if (sessionId) {
       await db
@@ -604,6 +737,8 @@ export async function completeSetup(
         consumedAt: schema.userSetupTokens.consumedAt,
         role: schema.users.role,
         firmId: schema.users.firmId,
+        status: schema.users.status,
+        totpEnabledAt: schema.users.totpEnabledAt,
       })
       .from(schema.userSetupTokens)
       .innerJoin(schema.users, eq(schema.users.id, schema.userSetupTokens.userId))
@@ -612,6 +747,19 @@ export async function completeSetup(
 
     const row = rows[0];
     if (!row || row.consumedAt || row.expiresAt <= new Date()) {
+      return { status: 'invalid_token' } as const;
+    }
+
+    // The token alone is not enough. Until this check existed, an unconsumed
+    // setup link was an unauthenticated password-and-authenticator reset for
+    // whoever held the URL — and worse, `setStaffStatus` and `setFirmStatus`
+    // suspend a user without touching their setup tokens, so somebody
+    // suspended within their first 24 hours could open the link they were
+    // already sent and set themselves back to `active`.
+    //
+    // A setup link finishes an account that has not been finished. It does not
+    // reopen one.
+    if (row.status !== 'pending' || row.totpEnabledAt !== null) {
       return { status: 'invalid_token' } as const;
     }
 

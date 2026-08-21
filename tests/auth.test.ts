@@ -6,8 +6,9 @@
  * that is usable before its second factor, and — the one that matters most —
  * whether the pre-authentication Postgres role can reach tenant data.
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
+  clearThrottle,
   closeAdmin,
   countAuditRows,
   destroyStaffFixture,
@@ -212,16 +213,51 @@ describe('login', () => {
 
     const verified = await completeTotp(started.token, await unspentCode(fixture.userId));
     expect(verified.status).toBe('ok');
+    if (verified.status !== 'ok') throw new Error('unreachable');
 
-    const resolved = await resolveStaffSession(started.token);
+    // The token ROTATES at the privilege boundary. The pending one was a secret
+    // worth almost nothing — a row that could only accept a code — and
+    // promoting it in place would turn that same secret into a twelve-hour
+    // session for anyone who had observed it meanwhile.
+    expect(verified.token).not.toBe(started.token);
+    expect(await resolveStaffSession(started.token)).toBeNull();
+
+    const resolved = await resolveStaffSession(verified.token);
     expect(resolved?.userId).toBe(fixture.userId);
     expect(resolved?.role).toBe('FIRM_ADMIN');
 
     expect(await countAuditRows(fixture.firmId, 'LOGIN_SUCCESS')).toBeGreaterThan(before);
 
     // Revocation takes effect on the next request, not on the next expiry.
-    await revokeStaffSession(started.token);
-    expect(await resolveStaffSession(started.token)).toBeNull();
+    await revokeStaffSession(verified.token);
+    expect(await resolveStaffSession(verified.token)).toBeNull();
+  });
+
+  it('a wrong code spends the pending session, so it cannot be retried', async () => {
+    const started = await login(fixture.email, PASSWORD);
+    if (started.status !== 'totp_required') throw new Error('expected totp_required');
+
+    expect((await completeTotp(started.token, '000000')).status).toBe('invalid');
+
+    // Not merely rejected — the pending row is revoked, so a guessing run
+    // cannot reuse one five-minute window. Each new window costs the password
+    // again, and those are counted.
+    expect((await completeTotp(started.token, '000000')).status).toBe('expired');
+  });
+
+  it('throttles second-factor attempts', async () => {
+    // Nothing counted these before: the pending session was five minutes of
+    // unlimited six-digit guesses, and a correct password reset the lockout, so
+    // the windows were free to mint.
+    let throttled = false;
+    for (let attempt = 0; attempt < 8 && !throttled; attempt++) {
+      const started = await login(fixture.email, PASSWORD);
+      if (started.status === 'throttled') break;
+      if (started.status !== 'totp_required') continue;
+      const outcome = await completeTotp(started.token, '000000');
+      throttled = outcome.status === 'throttled';
+    }
+    expect(throttled).toBe(true);
   });
 
   it('locks the account after five consecutive failures', async () => {
@@ -237,6 +273,12 @@ describe('login', () => {
 });
 
 describe('step-up re-authentication', () => {
+  beforeEach(async () => {
+    // The throttle above was deliberately exhausted, and it is shared with this
+    // path on purpose — same secret, same counter.
+    await clearThrottle(fixture.userId, fixture.email);
+  });
+
   it('accepts a code from an unspent step, then refuses that same code', async () => {
     const code = await unspentCode(fixture.userId);
 

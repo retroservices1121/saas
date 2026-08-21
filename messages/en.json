@@ -58,7 +58,8 @@
       "totpInvalid": "That code is not valid. Codes can only be used once — if you just used this one, wait for the next.",
       "sessionExpired": "That took too long. Sign in again.",
       "setupInvalid": "This setup link is no longer valid. Ask for a new one.",
-      "forbidden": "You do not have access to that."
+      "forbidden": "You do not have access to that.",
+      "totpThrottled": "Too many incorrect codes. Sign in again in a few minutes."
     }
   },
   "validation": {

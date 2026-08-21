@@ -22,6 +22,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { requireFirm } from '../../lib/auth/current';
+import { auditNow } from '../../lib/audit';
 import { withScope, schema } from '../../lib/db/scoped';
 import { correctWorkerRecord } from '../../lib/db/queries/subjects';
 import { sealValue, type SealedValue } from '../../lib/security/field-encryption';
@@ -104,6 +105,34 @@ export async function correctWorkerAction(
   });
 
   if (!current?.tinEnc || !current.tinLast4) return { error: 'firm.correct.noRecord' };
+
+  // The bound `companyId` is attacker-controlled — a server action argument is
+  // an HTTP parameter however it was bound in the component — and RLS alone
+  // does not catch a mismatch here: `worker_records_insert` asks only whether
+  // the *stated* company is in scope, which it would be for any company the
+  // firm holds a grant on.
+  //
+  // Left unchecked, a firm user with grants on A and B could file worker A's
+  // new current record under company B, sealed with B's data key. That breaks
+  // two things quietly: revoking the grant on A no longer removes access to
+  // that worker's tax ID, and destroying A's data key no longer shreds it.
+  //
+  // Everything below therefore uses the company on the record, and a mismatch
+  // is refused and recorded rather than silently corrected.
+  if (current.companyId !== companyId) {
+    await auditNow(session, {
+      action: 'SECURITY_VIOLATION',
+      companyId: current.companyId,
+      targetType: 'worker_records',
+      targetId: current.id,
+      metadata: {
+        guard: 'correctWorkerAction',
+        claimedCompanyId: companyId,
+        actualCompanyId: current.companyId,
+      },
+    });
+    return { error: 'firm.correct.noRecord' };
+  }
 
   const fieldErrors: Record<string, string> = {};
 

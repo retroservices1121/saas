@@ -120,9 +120,22 @@ export function evictDek(companyId?: string): void {
 }
 
 async function loadDek(db: ScopedDb, companyId: string): Promise<Buffer> {
-  const cached = cacheGet(companyId);
-  if (cached) return cached;
-
+  // The scoped read comes FIRST, before the cache is consulted.
+  //
+  // This SELECT is the only thing enforcing "companyId is in the caller's
+  // scope" — RLS answers it, and an empty result means the answer was no. When
+  // the cache was checked first, a hit skipped that check entirely, and the
+  // cache is process-global and warmed by whichever session touched the company
+  // last. So a request naming a company it had no business naming would get its
+  // key back, for five minutes at a time, depending only on someone else having
+  // been there recently.
+  //
+  // `decryptField` has an independent guard and was never exposed. The write
+  // paths — `encryptField`, `sealValue`, `sealBlob` — have no second guard and
+  // relied on this read alone.
+  //
+  // The cost is one indexed primary-key lookup per encryption, which is what
+  // the uncached path already paid.
   const rows = await db
     .select({
       dekCiphertext: schema.companies.dekCiphertext,
@@ -135,6 +148,11 @@ async function loadDek(db: ScopedDb, companyId: string): Promise<Buffer> {
   const row = rows[0];
   if (!row) throw new Error(`No company ${companyId} in scope.`);
   if (row.dekDestroyedAt) throw new DekDestroyedError(companyId);
+
+  // Only now is the cache worth consulting — it saves the KMS round trip, which
+  // is the expensive part, not the row read.
+  const cached = cacheGet(companyId);
+  if (cached) return cached;
 
   const key = await getKms().decryptDataKey(row.dekCiphertext, { companyId });
   cachePut(companyId, key);

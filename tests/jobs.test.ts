@@ -127,9 +127,14 @@ beforeEach(() => {
 describe('reminders', () => {
   it('sends nothing before the third day', async () => {
     await ageWorker(workerId, 2);
-    const result = await runReminders(sql);
-    expect(sent).toHaveLength(0);
-    expect(result.acted).toBe(0);
+    await runReminders(sql);
+
+    // Filtered to this test's own worker, like every assertion below it.
+    // `runReminders` sweeps every company in the database — that is what a
+    // nightly job does — so anything else outstanding on the instance lands in
+    // `sent` too. An unfiltered assertion here passes on a clean database and
+    // fails three days after somebody runs `pnpm db:seed`.
+    expect(sent.filter((message) => message.to === '+15555550999')).toHaveLength(0);
   });
 
   it('sends one on day three, in the subject\'s own language', async () => {

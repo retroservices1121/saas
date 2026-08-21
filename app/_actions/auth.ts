@@ -111,15 +111,29 @@ export async function verifyTotpAction(
     store.delete(SESSION_COOKIE);
     return { error: 'auth.errors.sessionExpired' };
   }
-  if (outcome.status === 'invalid') return { error: 'auth.errors.totpInvalid' };
+  if (outcome.status === 'throttled') {
+    // The pending session is already revoked. Sending them back to the start
+    // is honest about what has to happen next.
+    const store = await cookies();
+    store.delete(SESSION_COOKIE);
+    return { error: 'auth.errors.totpThrottled' };
+  }
+  if (outcome.status === 'invalid') {
+    // A wrong code spends the pending session, so there is nothing left to
+    // retry against — the cookie goes with it.
+    const store = await cookies();
+    store.delete(SESSION_COOKIE);
+    return { error: 'auth.errors.totpInvalid' };
+  }
 
-  // Re-issue the cookie with the full session lifetime now that the second
-  // factor is satisfied. The token itself does not change — the session row it
-  // points at was promoted in place — so there is nothing to rotate.
+  // A NEW token. `completeTotp` issues a fresh session row and revokes the
+  // pending one rather than promoting it in place, so that a token observed
+  // while it was worth nothing does not become a twelve-hour session the moment
+  // the real user finishes logging in.
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, cookieOptions(12 * 60 * 60));
+  store.set(SESSION_COOKIE, outcome.token, cookieOptions(12 * 60 * 60));
 
-  const user = await resolveStaffSession(token, context);
+  const user = await resolveStaffSession(outcome.token, context);
   if (!user) redirect('/login');
   redirect(homePathFor(await sessionForStaffUser(user, context)));
 }

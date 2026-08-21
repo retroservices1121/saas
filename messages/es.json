@@ -64,7 +64,8 @@
       "totpInvalid": "Ese código no es válido. Cada código sirve una sola vez: si acaba de usar este, espere al siguiente.",
       "sessionExpired": "Pasó demasiado tiempo. Inicie sesión de nuevo.",
       "setupInvalid": "Este enlace de configuración ya no es válido. Solicite uno nuevo.",
-      "forbidden": "No tiene acceso a eso."
+      "forbidden": "No tiene acceso a eso.",
+      "totpThrottled": "Demasiados códigos incorrectos. Vuelva a iniciar sesión en unos minutos."
     }
   },
   "validation": {

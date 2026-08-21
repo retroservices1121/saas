@@ -104,11 +104,17 @@ export async function issueInvite(
   const inviteId = uuidv7();
   const expiresAt = new Date(Date.now() + (params.ttlMs ?? INVITE_TTL_MS));
 
+  // Scoped to the company as well as the subject. Without it, a caller who
+  // passed a subject id from one company and a company id from another would
+  // consume the real invite while minting a mismatched replacement — turning a
+  // wrong-arguments bug into a denial of service on a worker who was part-way
+  // through their form.
   await db
     .update(schema.invites)
     .set({ consumedAt: new Date() })
     .where(
       and(
+        eq(schema.invites.companyId, params.companyId),
         eq(schema.invites.subjectType, params.subjectType),
         eq(schema.invites.subjectId, params.subjectId),
         sql`${schema.invites.consumedAt} is null`,

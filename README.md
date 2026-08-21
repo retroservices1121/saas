@@ -20,7 +20,7 @@ not calculate, withhold, file, or move money.
 
 ## Build status
 
-All seventeen steps of the spec's build order are implemented. 147 tests pass
+All seventeen steps of the spec's build order are implemented. 159 tests pass
 against Postgres 16 with row level security forced.
 
 | Step | Status |
@@ -74,7 +74,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"     
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"     # AUTH_SECRET
 
 pnpm db:bootstrap    # migrate, then create app_user
-pnpm test            # 147 tests, needs the database
+pnpm test            # 159 tests, needs the database
 pnpm db:seed         # a demo firm, company, worker and owner, with links
 pnpm dev
 ```
@@ -212,6 +212,57 @@ landing `COMPANY_VISIBLE`.
 
 ---
 
+## What a security review found
+
+An adversarial pass over the finished system found seven real defects. They are
+fixed, and `tests/rls-policies.test.ts` exists because of the first two — it
+exercises the Postgres policies directly rather than through the data access
+layer, since going through the DAL proves the two layers together and cannot
+tell you which one is holding.
+
+**A `FOR ALL` policy applies its USING clause to SELECT.** `users_write` was
+`FOR ALL` with no firm predicate, and permissive policies are OR-ed per command,
+so it silently became the effective read rule for the whole table. Measured on a
+seeded instance: a firm admin could read all 11 users including 8 belonging to
+other firms, and a password hash. Layer 1 contributed nothing on `users`; only
+the hand-written `WHERE` clauses were holding, which is the inverse of the
+design.
+
+**`can_read_company()` is true for a subject's own company**, so an invite policy
+reading `can_read_company(company_id) OR subject_id = app.subject_id()` made the
+second clause dead code. One worker could read every other worker's `draft` —
+their legal name, date of birth and address, in plaintext, mid-form — and could
+write another subject's `token_hash` to mint a session as them.
+
+**Nothing rate-limited TOTP.** The password path had a throttle; the second
+factor had none, no attempt counter, and a wrong code left the pending session
+alive. Five minutes of unlimited six-digit guesses is roughly a coin flip — and
+a correct password used to clear the lockout, so an attacker holding one could
+mint fresh windows indefinitely.
+
+**The session token was not rotated when the session was promoted** from
+password-verified to TOTP-verified. Textbook session fixation: a token observed
+while it was worth nothing became a twelve-hour session the moment the real user
+finished logging in.
+
+**A setup link reactivated a suspended user.** `completeSetup` validated the
+token and never read `users.status`, and suspending a user does not touch their
+setup tokens — so anyone suspended within their first 24 hours could open the
+link they had already been sent and set themselves back to active.
+
+**Two server actions trusted a bound `companyId`.** A server action argument is
+an HTTP parameter however it was bound in the component. A firm user with grants
+on two companies could file a worker's corrected record under the wrong one,
+sealed with the wrong data key — which silently breaks both grant revocation and
+the cryptographic shred.
+
+**The DEK cache was consulted before the scope check.** The scoped `SELECT` is
+the only thing enforcing "this company is in your scope", and a cache hit skipped
+it. `decryptField` has an independent guard and was never exposed; the write
+paths had no second guard.
+
+---
+
 ## Things worth knowing before changing this code
 
 **Drizzle names every column in an INSERT**, passing `default` for the ones you
@@ -269,7 +320,8 @@ drizzle/
   prelude/             app schema, uuid v7
   generated/           produced by `pnpm db:generate` — never hand-edited
   post/                RLS, roles, grants, triggers, constraints
-tests/                 147 tests; the isolation suite is spec section 5
+tests/                 159 tests; isolation.test.ts is spec section 5,
+                       rls-policies.test.ts exercises layer 1 on its own
 docs/DESIGN_BRIEF.md   a brief for designing the UI properly
 ```
 

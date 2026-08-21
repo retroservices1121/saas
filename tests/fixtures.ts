@@ -461,3 +461,17 @@ export async function readRow<T extends Record<string, unknown>>(
   const rows = await admin.unsafe<T[]>(query, params as never[]);
   return rows[0] ?? null;
 }
+
+/**
+ * Clears the throttle counters for a user.
+ *
+ * The second-factor throttle is keyed per user and shared between login and
+ * step-up re-authentication — deliberately, since both spend the same secret.
+ * That makes a test which deliberately exhausts it poison every later test
+ * touching the same fixture, so tests that need a clean counter say so.
+ */
+export async function clearThrottle(userId: string, email?: string): Promise<void> {
+  await admin`delete from login_attempts where identifier = ${`totp:${userId}`}`;
+  if (email) await admin`delete from login_attempts where identifier = ${email}`;
+  await admin`update users set failed_login_count = 0, locked_until = null where id = ${userId}`;
+}
