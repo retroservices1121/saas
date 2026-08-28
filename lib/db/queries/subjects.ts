@@ -13,7 +13,11 @@ import type { CompanySession, FirmSession, Session, SubjectSession } from '../..
 import { audit } from '../../audit';
 import { type SealedValue } from '../../security/field-encryption';
 import { issueInvite, type IssuedInvite } from '../../invites';
-import { sendOwnerInvite, sendWorkerInvite } from '../../notifications';
+import {
+  assertInvitableEmail,
+  sendOwnerInvite,
+  sendWorkerInvite,
+} from '../../notifications';
 import { uuidv7 } from '../../uuid';
 import type { InviteOwnerInput, InviteWorkerInput } from '../../validation/forms';
 import type { Locale } from '../../../i18n/request';
@@ -28,13 +32,13 @@ export interface InviteResult {
 }
 
 /**
- * Creates a worker and its invite in one transaction, then sends the SMS.
+ * Creates a worker and its invite in one transaction, then sends the email.
  *
  * The send is outside the transaction and after the commit, deliberately. A
- * text message cannot be rolled back: sending inside the transaction and then
- * failing to commit leaves a live link in someone's pocket pointing at a worker
- * row that does not exist. The reverse failure — committed row, SMS not sent —
- * is visible as an `Invited` row with no `sent_at`, and is fixed by resending.
+ * sent message cannot be rolled back: sending inside the transaction and then
+ * failing to commit leaves a live link in an inbox pointing at a worker row
+ * that does not exist. The reverse failure — committed row, mail not sent — is
+ * visible as an `Invited` row with no `sent_at`, and is fixed by resending.
  */
 export async function inviteWorker(
   session: CompanySession | FirmSession,
@@ -43,13 +47,21 @@ export async function inviteWorker(
 ): Promise<InviteResult> {
   const workerId = uuidv7();
 
-  const { invite, companyName } = await withScope(session, async (db) => {
+  const { invite, company } = await withScope(session, async (db) => {
+    const company = await readCompany(db, companyId);
+
+    // Before the row exists, not after. The guard lives here rather than in the
+    // action so neither entry point can skip it, and so a refusal leaves
+    // nothing behind to clean up.
+    assertInvitableEmail(input.inviteEmail, company.contactEmail);
+
     await db.insert(schema.workers).values({
       id: workerId,
       companyId,
       workerType: input.workerType,
       displayName: input.displayName,
-      phoneE164: input.phoneE164,
+      inviteEmail: input.inviteEmail,
+      phoneE164: input.phoneE164 ?? null,
       preferredLocale: input.preferredLocale,
       status: 'INVITED',
       jobTitle: input.jobTitle ?? null,
@@ -72,15 +84,15 @@ export async function inviteWorker(
       subjectId: workerId,
     });
 
-    return { invite: issued, companyName: await readCompanyName(db, companyId) };
+    return { invite: issued, company };
   });
 
   await deliverInvite(session, {
     inviteId: invite.inviteId,
     subjectType: 'WORKER',
-    phoneE164: input.phoneE164,
+    email: input.inviteEmail,
     locale: input.preferredLocale,
-    companyName,
+    companyName: company.legalName,
     url: invite.url,
   });
 
@@ -103,8 +115,11 @@ export async function inviteOwner(
 ): Promise<InviteResult> {
   const ownerId = uuidv7();
 
-  const { invite, companyName } = await withScope(session, async (db) => {
-    // The seven columns a company may write on an owner — everything from the
+  const { invite, company } = await withScope(session, async (db) => {
+    const company = await readCompany(db, companyId);
+    assertInvitableEmail(input.inviteEmail, company.contactEmail);
+
+    // The columns a company may write on an owner — everything from the
     // legal name down is the owner's to supply, through their own link, and
     // app_company holds no INSERT privilege on any of it. Hand-written because
     // an ORM insert would name all twenty-three columns; see insertColumns.
@@ -115,7 +130,8 @@ export async function inviteOwner(
         display_name: input.displayName,
         ownership_percent:
           input.ownershipPercent == null ? null : String(input.ownershipPercent),
-        phone_e164: input.phoneE164,
+        invite_email: input.inviteEmail,
+        phone_e164: input.phoneE164 ?? null,
         preferred_locale: input.preferredLocale,
         status: 'INVITED',
       }),
@@ -134,15 +150,15 @@ export async function inviteOwner(
       subjectId: ownerId,
     });
 
-    return { invite: issued, companyName: await readCompanyName(db, companyId) };
+    return { invite: issued, company };
   });
 
   await deliverInvite(session, {
     inviteId: invite.inviteId,
     subjectType: 'OWNER',
-    phoneE164: input.phoneE164,
+    email: input.inviteEmail,
     locale: input.preferredLocale,
-    companyName,
+    companyName: company.legalName,
     url: invite.url,
   });
 
@@ -166,7 +182,7 @@ export async function resendInvite(
     subjectId: string;
   },
 ): Promise<IssuedInvite> {
-  const { invite, companyName, phoneE164, locale } = await withScope(session, async (db) => {
+  const { invite, companyName, email, locale } = await withScope(session, async (db) => {
     const contact = await readSubjectContact(
       db,
       params.subjectType,
@@ -186,8 +202,8 @@ export async function resendInvite(
 
     return {
       invite: issued,
-      companyName: await readCompanyName(db, params.companyId),
-      phoneE164: contact.phoneE164,
+      companyName: (await readCompany(db, params.companyId)).legalName,
+      email: contact.inviteEmail,
       locale: contact.preferredLocale,
     };
   });
@@ -195,7 +211,7 @@ export async function resendInvite(
   await deliverInvite(session, {
     inviteId: invite.inviteId,
     subjectType: params.subjectType,
-    phoneE164,
+    email,
     locale,
     companyName,
     url: invite.url,
@@ -245,13 +261,21 @@ async function readKnownDob(
   return rows[0]?.dateOfBirth ?? undefined;
 }
 
-async function readCompanyName(db: ScopedDb, companyId: string): Promise<string> {
+interface CompanyIdentity {
+  legalName: string;
+  contactEmail: string | null;
+}
+
+async function readCompany(db: ScopedDb, companyId: string): Promise<CompanyIdentity> {
   const rows = await db
-    .select({ legalName: schema.companies.legalName })
+    .select({
+      legalName: schema.companies.legalName,
+      contactEmail: schema.companies.contactEmail,
+    })
     .from(schema.companies)
     .where(eq(schema.companies.id, companyId))
     .limit(1);
-  return rows[0]?.legalName ?? '';
+  return { legalName: rows[0]?.legalName ?? '', contactEmail: rows[0]?.contactEmail ?? null };
 }
 
 /**
@@ -272,22 +296,28 @@ async function readSubjectContact(
   subjectType: 'WORKER' | 'OWNER',
   subjectId: string,
   companyId: string,
-): Promise<{ phoneE164: string; preferredLocale: Locale } | null> {
+): Promise<{ inviteEmail: string; preferredLocale: Locale } | null> {
   if (subjectType === 'WORKER') {
     const rows = await db
       .select({
-        phoneE164: schema.workers.phoneE164,
+        inviteEmail: schema.workers.inviteEmail,
         preferredLocale: schema.workers.preferredLocale,
       })
       .from(schema.workers)
       .where(and(eq(schema.workers.id, subjectId), eq(schema.workers.companyId, companyId)))
       .limit(1);
-    return rows[0] ?? null;
+    const worker = rows[0];
+    // A subject created before invites moved to email has no address, and there
+    // is nowhere to send. Null, so the caller fails loudly rather than
+    // reporting a resend that never happened.
+    return worker?.inviteEmail
+      ? { inviteEmail: worker.inviteEmail, preferredLocale: worker.preferredLocale }
+      : null;
   }
 
   const rows = await db
     .select({
-      phoneE164: schema.companyOwners.phoneE164,
+      inviteEmail: schema.companyOwners.inviteEmail,
       preferredLocale: schema.companyOwners.preferredLocale,
     })
     .from(schema.companyOwners)
@@ -298,7 +328,10 @@ async function readSubjectContact(
       ),
     )
     .limit(1);
-  return rows[0] ?? null;
+  const owner = rows[0];
+  return owner?.inviteEmail
+    ? { inviteEmail: owner.inviteEmail, preferredLocale: owner.preferredLocale }
+    : null;
 }
 
 /**
@@ -315,7 +348,7 @@ async function deliverInvite(
   params: {
     inviteId: string;
     subjectType: 'WORKER' | 'OWNER';
-    phoneE164: string;
+    email: string;
     locale: Locale;
     companyName: string;
     url: string;
@@ -323,7 +356,7 @@ async function deliverInvite(
 ): Promise<void> {
   try {
     const payload = {
-      phoneE164: params.phoneE164,
+      email: params.email,
       locale: params.locale,
       companyName: params.companyName,
       url: params.url,

@@ -15,7 +15,7 @@ import { correctWorkerRecord, inviteWorker, submitWorkerForm } from '../lib/db/q
 import { openInvite, subjectSessionFor, verifyInviteDob } from '../lib/invites';
 import { evictDek, sealValue } from '../lib/security/field-encryption';
 import { resolveFirmScope } from '../lib/auth/scope';
-import { __setSmsProvider, type SmsMessage } from '../lib/services/messaging';
+import { __setEmailProvider, type EmailMessage } from '../lib/services/messaging';
 import type { CompanySession, FirmSession } from '../lib/auth/session';
 
 const TIN = '123456789';
@@ -27,10 +27,10 @@ let firmSession: FirmSession;
 let companyId: string;
 let workerId: string;
 
-const sent: SmsMessage[] = [];
+const sent: EmailMessage[] = [];
 
 beforeAll(async () => {
-  __setSmsProvider({
+  __setEmailProvider({
     name: 'test',
     async send(message) {
       sent.push(message);
@@ -80,6 +80,7 @@ beforeAll(async () => {
   const invited = await inviteWorker(companySession, companyId, {
     displayName: 'Typo Victim',
     workerType: 'EMPLOYEE',
+    inviteEmail: 'typo@personal.test',
     phoneE164: '+15555552000',
     preferredLocale: 'en',
     jobTitle: null,
@@ -90,7 +91,7 @@ beforeAll(async () => {
   });
   workerId = invited.subjectId;
 
-  const token = /\/i\/([A-Za-z0-9_-]+)/.exec(sent[0]!.body)![1]!;
+  const token = /\/i\/([A-Za-z0-9_-]+)/.exec(sent[0]!.text)![1]!;
   await verifyInviteDob(token, '1990-04-01');
   const state = await openInvite(token);
   if (state.status !== 'verified') throw new Error('gate did not open');
@@ -115,7 +116,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   evictDek();
-  __setSmsProvider(undefined);
+  __setEmailProvider(undefined);
   if (firm) await destroyFirm(firm.firmId);
   await closeAdmin();
 });

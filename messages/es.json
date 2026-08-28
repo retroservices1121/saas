@@ -183,13 +183,16 @@
   },
   "notifications": {
     "workerInvite": {
-      "sms": "{company} le pide completar su información de incorporación. Toma unos 5 minutos y su empleador no verá lo que usted escriba. Comience aquí: {url}"
+      "subject": "{company}: se necesita su información de incorporación",
+      "body": "{company} le pide completar su información de incorporación.\n\nToma unos cinco minutos. Se le pedirá su nombre legal, dirección, fecha de nacimiento, número de identificación fiscal y datos bancarios para el depósito directo.\n\n{company} no verá lo que usted escriba. Va únicamente a su despacho contable, que lo usa para pagarle y presentar sus impuestos.\n\nComience aquí:\n{url}\n\nEl enlace funciona una sola vez y caduca en siete días. Puede detenerse a medio camino y volver: sus respuestas se guardan sobre la marcha."
     },
     "ownerInvite": {
-      "sms": "{company} le pide proporcionar su información de propietario para la declaración de impuestos. Toma unos 3 minutos. Comience aquí: {url}"
+      "subject": "{company}: se necesita su información de propietario",
+      "body": "{company} le pide proporcionar su información de propietario para la declaración de impuestos.\n\nToma unos tres minutos. Se le pedirá su nombre legal, dirección, fecha de nacimiento y número de identificación fiscal.\n\nComience aquí:\n{url}\n\nEl enlace funciona una sola vez y caduca en siete días."
     },
     "reminder": {
-      "sms": "Recordatorio de {company}: su incorporación aún no está completa. Complétela aquí: {url}"
+      "subject": "Recordatorio de {company}: su incorporación no está completa",
+      "body": "Su incorporación para {company} aún no está completa.\n\nAquí tiene un enlace nuevo; el anterior ya no funciona:\n{url}\n\nToma unos cinco minutos y caduca en siete días."
     },
     "staffSetup": {
       "subject": "Configure su cuenta de Incorporación",
@@ -263,7 +266,7 @@
     "contact": {
       "title": "¿Cómo podemos comunicarnos con usted?",
       "phone": "Número de celular",
-      "phoneHint": "El número al que se envió este enlace.",
+      "phoneHint": "Para que el despacho contable pueda comunicarse con usted sobre sus documentos.",
       "email": "Correo electrónico",
       "emailHint": "Opcional. Solo se usa si necesitamos comunicarnos sobre sus documentos."
     },
@@ -703,16 +706,16 @@
     },
     "inviteWorker": {
       "title": "Invitar a un trabajador",
-      "intro": "Recibirá un mensaje de texto con un enlace. La persona introduce sus propios datos personales y bancarios; usted solo verá si ha terminado.",
+      "intro": "Recibirá un correo con un enlace. La persona introduce sus propios datos personales y bancarios; usted solo verá si ha terminado.",
       "person": "La persona",
-      "personHint": "Lo justo para poder enviarle un mensaje de texto.",
+      "personHint": "Lo justo para poder enviarle el enlace.",
       "displayName": "Nombre",
       "displayNameHint": "Como usted se refiere a esa persona. No tiene que ser su nombre legal completo.",
       "type": "Tipo de trabajador",
       "language": "Idioma",
       "languageHint": "El idioma de su formulario y de sus mensajes.",
       "phone": "Número de celular",
-      "phoneHint": "El enlace se envía aquí.",
+      "phoneHint": "Opcional. Solo para poder localizarle si se atasca.",
       "payroll": "Datos de nómina",
       "payrollHint": "Usted los introduce. El trabajador no los ve ni los cambia.",
       "jobTitle": "Puesto",
@@ -720,7 +723,9 @@
       "payType": "Tipo de pago",
       "payFrequency": "Frecuencia de pago",
       "workState": "Estado de trabajo",
-      "submit": "Enviar la invitación"
+      "submit": "Enviar la invitación",
+      "email": "Correo electrónico",
+      "emailHint": "El enlace de invitación se envía aquí. Debe ser una dirección que esa persona controle personalmente, no una del dominio de su empresa, porque usted podría leerla."
     },
     "owners": {
       "title": "Propietarios",
@@ -734,15 +739,17 @@
     },
     "inviteOwner": {
       "title": "Invitar a un propietario",
-      "intro": "Recibirá un mensaje de texto con un enlace y proporcionará su propio nombre, fecha de nacimiento, dirección e identificación fiscal. Si usted mismo es propietario, invítese aquí: el proceso es el mismo.",
+      "intro": "Recibirá un correo con un enlace y proporcionará su propio nombre, fecha de nacimiento, dirección e identificación fiscal. Si usted mismo es propietario, invítese aquí: el proceso es el mismo.",
       "displayName": "Nombre",
       "displayNameHint": "Como usted se refiere a esa persona.",
       "percent": "Porcentaje de participación",
       "percentHint": "Opcional. Se avisa, pero no se impide, si el total no es 100.",
       "phone": "Número de celular",
-      "phoneHint": "El enlace se envía aquí.",
+      "phoneHint": "Opcional.",
       "language": "Idioma",
-      "submit": "Enviar la invitación"
+      "submit": "Enviar la invitación",
+      "email": "Correo electrónico",
+      "emailHint": "El enlace de invitación se envía aquí. Debe ser una dirección que esa persona controle personalmente, no una del dominio de su empresa."
     },
     "profile": {
       "title": "Perfil de la empresa",
@@ -803,7 +810,8 @@
     "errors": {
       "check": "Revise los campos señalados.",
       "noValue": "No hay nada registrado para ese campo.",
-      "revealFailed": "No se pudo revelar."
+      "revealFailed": "No se pudo revelar.",
+      "employerMailbox": "Esa dirección pertenece al dominio de correo de su propia empresa, lo que significa que usted podría leer la invitación y abrir el enlace. Use una dirección que la persona controle personalmente."
     }
   },
   "documents": {

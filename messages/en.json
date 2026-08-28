@@ -177,13 +177,16 @@
   },
   "notifications": {
     "workerInvite": {
-      "sms": "{company} has asked you to complete your onboarding information. It takes about 5 minutes and your employer will not see what you enter. Start here: {url}"
+      "subject": "{company}: your onboarding information is needed",
+      "body": "{company} has asked you to complete your onboarding information.\n\nIt takes about five minutes. You will be asked for your legal name, address, date of birth, tax ID number, and bank details for direct deposit.\n\n{company} will not see what you enter. It goes only to their accounting firm, who use it to pay you and file your taxes.\n\nStart here:\n{url}\n\nThe link works once and expires in seven days. You can stop part-way and come back to it — your answers are saved as you go."
     },
     "ownerInvite": {
-      "sms": "{company} has asked you to provide your owner information for tax filing. It takes about 3 minutes. Start here: {url}"
+      "subject": "{company}: your owner information is needed",
+      "body": "{company} has asked you to provide your owner information for tax filing.\n\nIt takes about three minutes. You will be asked for your legal name, address, date of birth, and tax ID number.\n\nStart here:\n{url}\n\nThe link works once and expires in seven days."
     },
     "reminder": {
-      "sms": "Reminder from {company}: your onboarding is not finished yet. Complete it here: {url}"
+      "subject": "Reminder from {company}: your onboarding is not finished",
+      "body": "Your onboarding for {company} is not complete yet.\n\nHere is a fresh link — the previous one no longer works:\n{url}\n\nIt takes about five minutes and expires in seven days."
     },
     "staffSetup": {
       "subject": "Set up your Onboarding account",
@@ -257,7 +260,7 @@
     "contact": {
       "title": "How can we reach you?",
       "phone": "Mobile number",
-      "phoneHint": "The number this link was sent to.",
+      "phoneHint": "So the accounting firm can reach you about your paperwork.",
       "email": "Email address",
       "emailHint": "Optional. Only used if we need to reach you about your paperwork."
     },
@@ -697,16 +700,16 @@
     },
     "inviteWorker": {
       "title": "Invite a worker",
-      "intro": "They will receive a text message with a link. They enter their own personal and banking information; you will only see whether they have finished.",
+      "intro": "They will receive an email with a link. They enter their own personal and banking information; you will only see whether they have finished.",
       "person": "The person",
-      "personHint": "Enough to send them a text message.",
+      "personHint": "Enough to send them the link.",
       "displayName": "Name",
       "displayNameHint": "How you refer to them. It does not have to be their full legal name.",
       "type": "Worker type",
       "language": "Language",
       "languageHint": "The language their form and text messages will be in.",
       "phone": "Mobile number",
-      "phoneHint": "The link is sent here.",
+      "phoneHint": "Optional. Only so you can reach them if they get stuck.",
       "payroll": "Payroll details",
       "payrollHint": "You enter these. The worker does not see or change them.",
       "jobTitle": "Job title",
@@ -714,7 +717,9 @@
       "payType": "Pay type",
       "payFrequency": "Pay frequency",
       "workState": "Work state",
-      "submit": "Send the invite"
+      "submit": "Send the invite",
+      "email": "Email address",
+      "emailHint": "The invite link is sent here. It must be an address they control personally — not one on your company's domain, because you would be able to read it."
     },
     "owners": {
       "title": "Owners",
@@ -728,15 +733,17 @@
     },
     "inviteOwner": {
       "title": "Invite an owner",
-      "intro": "They will receive a text message with a link and supply their own name, date of birth, address and tax ID. If you are an owner yourself, invite yourself here — the process is the same.",
+      "intro": "They will receive an email with a link and supply their own name, date of birth, address and tax ID. If you are an owner yourself, invite yourself here — the process is the same.",
       "displayName": "Name",
       "displayNameHint": "How you refer to them.",
       "percent": "Ownership percentage",
       "percentHint": "Optional. Warned about, not enforced, if the total is not 100.",
       "phone": "Mobile number",
-      "phoneHint": "The link is sent here.",
+      "phoneHint": "Optional.",
       "language": "Language",
-      "submit": "Send the invite"
+      "submit": "Send the invite",
+      "email": "Email address",
+      "emailHint": "The invite link is sent here. It must be an address they control personally — not one on your company's domain."
     },
     "profile": {
       "title": "Company profile",
@@ -797,7 +804,8 @@
     "errors": {
       "check": "Please check the highlighted fields.",
       "noValue": "There is nothing recorded for that field.",
-      "revealFailed": "That could not be revealed."
+      "revealFailed": "That could not be revealed.",
+      "employerMailbox": "That address is on your company's own email domain, which means you could read the invite and open the link yourself. Use an address the person controls personally."
     }
   },
   "documents": {

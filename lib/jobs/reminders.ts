@@ -15,9 +15,9 @@
  * window rather than a link that expires the day after they are reminded.
  *
  * The message says nothing about what is missing. Spec section 11: reminder
- * content "never includes what data is missing beyond a generic prompt, since
- * SMS is not a secure channel". "Your bank details are missing" tells whoever
- * picks up the phone something they did not know.
+ * content "never includes what data is missing beyond a generic prompt".
+ * "Your bank details are missing" tells whoever else can read that inbox
+ * something they did not know.
  */
 import { auditSystem, type AdminSql, type JobResult } from './context';
 import { sendInviteReminder } from '../notifications';
@@ -39,7 +39,7 @@ interface PendingSubject {
   firm_id: string;
   company_name: string;
   display_name: string;
-  phone_e164: string;
+  invite_email: string | null;
   preferred_locale: Locale;
   days_waiting: number;
   reminders_sent: number;
@@ -59,7 +59,7 @@ async function findPending(sql: AdminSql, now: Date): Promise<PendingSubject[]> 
   return sql<PendingSubject[]>`
     with subjects as (
       select 'WORKER'::text as subject_type, w.id as subject_id, w.company_id,
-             w.display_name, w.phone_e164, w.preferred_locale, w.created_at,
+             w.display_name, w.invite_email, w.preferred_locale, w.created_at,
              (select r.date_of_birth from worker_records r
                where r.worker_id = w.id and r.is_current) as expected_dob
         from workers w
@@ -67,7 +67,7 @@ async function findPending(sql: AdminSql, now: Date): Promise<PendingSubject[]> 
          and w.archived_at is null
       union all
       select 'OWNER'::text, o.id, o.company_id,
-             o.display_name, o.phone_e164, o.preferred_locale, o.created_at,
+             o.display_name, o.invite_email, o.preferred_locale, o.created_at,
              o.date_of_birth
         from company_owners o
        where o.status in ('INVITED', 'IN_PROGRESS')
@@ -78,7 +78,7 @@ async function findPending(sql: AdminSql, now: Date): Promise<PendingSubject[]> 
            c.firm_id,
            c.legal_name       as company_name,
            s.display_name,
-           s.phone_e164,
+           s.invite_email,
            s.preferred_locale,
            floor(extract(epoch from (${now} - s.created_at)) / 86400)::int as days_waiting,
            (select count(*)::int from reminders rm
@@ -188,14 +188,24 @@ export async function runReminders(
                                scheduled_for, sent_at, channel, attempt)
         values (
           ${subject.company_id}, ${subject.subject_type}::subject_type, ${subject.subject_id},
-          ${`day-${subject.days_waiting}`}, ${now}, ${now}, 'SMS', ${subject.reminders_sent + 1}
+          ${`day-${subject.days_waiting}`}, ${now}, ${now}, 'EMAIL', ${subject.reminders_sent + 1}
         )
       `;
     });
 
+    if (!subject.invite_email) {
+      // Nothing to send to. Recorded rather than skipped in silence, because
+      // "the reminders are not arriving" is otherwise indistinguishable from
+      // "the job is not running".
+      result.notes.push(
+        `${subject.subject_type} ${subject.subject_id} has no invite email; skipped`,
+      );
+      continue;
+    }
+
     await sendInviteReminder({
       subjectType: subject.subject_type,
-      phoneE164: subject.phone_e164,
+      email: subject.invite_email,
       locale: subject.preferred_locale,
       companyName: subject.company_name,
       url: inviteUrl(token),
@@ -210,7 +220,7 @@ export async function runReminders(
       metadata: {
         attempt: subject.reminders_sent + 1,
         daysWaiting: subject.days_waiting,
-        channel: 'SMS',
+        channel: 'EMAIL',
       },
     });
 

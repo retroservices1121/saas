@@ -1,25 +1,25 @@
 /**
- * SMS and email, behind interfaces (spec section 3: Twilio, Resend or SES).
+ * Outbound email, behind an interface (spec section 3: Resend or SES).
  *
- * Both channels are unauthenticated and unencrypted in transit to the handset
- * or the inbox, and the spec treats them that way: reminder content "never
- * includes what data is missing beyond a generic prompt, since SMS is not a
- * secure channel" (section 11). That rule is enforced here rather than trusted
- * to every call site — `assertNoSensitiveContent` runs on every outbound
- * message, in both providers, including the console one.
+ * SMS used to live here too. It is gone: every notification is email now, which
+ * removed A2P 10DLC carrier registration from the critical path and with it the
+ * longest lead time before launch. What it cost is discussed in the README —
+ * with a text message the employer types the number but does not receive on it,
+ * and email has no such asymmetry, so `assertInvitableEmail` refuses an address
+ * on the company's own domain.
  *
- * The `console` providers print to the server log, which the redaction filter
- * has already wrapped. That is what lets the whole invite flow be exercised
- * end to end without a Twilio account.
+ * The channel is still unauthenticated and unencrypted at rest in somebody's
+ * inbox, and the spec's rule applies unchanged: reminder content "never includes
+ * what data is missing beyond a generic prompt" (section 11). That is enforced
+ * here rather than trusted to every call site — `assertNoSensitiveContent` runs
+ * on every outbound message, including in the console provider.
+ *
+ * The `console` provider prints to the server log, which the redaction filter
+ * has already wrapped. That is what lets the whole invite flow be exercised end
+ * to end without a Resend account.
  */
 import { redactString } from '../security/redaction';
 import type { Locale } from '../../i18n/request';
-
-export interface SmsMessage {
-  to: string;
-  body: string;
-  locale: Locale;
-}
 
 export interface EmailMessage {
   to: string;
@@ -27,11 +27,6 @@ export interface EmailMessage {
   /** Plain text. No HTML: a tracking pixel in an onboarding email is a disclosure. */
   text: string;
   locale: Locale;
-}
-
-export interface SmsProvider {
-  readonly name: string;
-  send(message: SmsMessage): Promise<void>;
 }
 
 export interface EmailProvider {
@@ -43,12 +38,12 @@ export interface EmailProvider {
  * A last check before anything leaves the process on an insecure channel.
  *
  * Nothing should be assembling a message containing a tax ID. This exists
- * because "nothing should" and "nothing does" are different claims, and an SMS
- * is delivered to a lock screen, a synced tablet, and a carrier's logs.
+ * because "nothing should" and "nothing does" are different claims, and an
+ * email sits in an inbox indefinitely, is synced to every device the recipient
+ * owns, and passes through servers nobody here controls.
  *
  * Invite links are the deliberate exception: the token IS the message, and it
- * is single-use, time-limited, and gated on a date of birth the recipient's
- * employer does not hold.
+ * is single-use, time-limited, and gated on a date of birth.
  */
 export function assertNoSensitiveContent(body: string): void {
   const withoutUrls = body.replace(/https?:\/\/\S+/g, '');
@@ -67,16 +62,8 @@ export function assertNoSensitiveContent(body: string): void {
   if (longRun || separatedTin) {
     throw new Error(
       'Refusing to send a message containing what looks like a tax ID, routing, or ' +
-        'account number. Outbound SMS and email carry a generic prompt only.',
+        'account number. Outbound email carries a generic prompt only.',
     );
-  }
-}
-
-class ConsoleSmsProvider implements SmsProvider {
-  readonly name = 'console';
-  async send(message: SmsMessage): Promise<void> {
-    assertNoSensitiveContent(message.body);
-    console.info(`[sms:${message.locale}] to ${message.to}\n${redactString(message.body)}`);
   }
 }
 
@@ -89,56 +76,6 @@ class ConsoleEmailProvider implements EmailProvider {
         message.text,
       )}`,
     );
-  }
-}
-
-class TwilioSmsProvider implements SmsProvider {
-  readonly name = 'twilio';
-  readonly #sid: string;
-  readonly #token: string;
-  readonly #from: string;
-
-  constructor() {
-    const sid = process.env.TWILIO_ACCOUNT_SID;
-    const token = process.env.TWILIO_AUTH_TOKEN;
-    const from = process.env.TWILIO_FROM_NUMBER;
-    if (!sid || !token || !from) {
-      throw new Error(
-        'SMS_PROVIDER=twilio requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and ' +
-          'TWILIO_FROM_NUMBER.',
-      );
-    }
-    this.#sid = sid;
-    this.#token = token;
-    this.#from = from;
-  }
-
-  async send(message: SmsMessage): Promise<void> {
-    assertNoSensitiveContent(message.body);
-
-    // Twilio's REST API over fetch, rather than the SDK: one form-encoded POST
-    // does not justify a dependency, and the SDK's retry behaviour would need
-    // configuring away regardless — a retried invite SMS is a second live link.
-    const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${this.#sid}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${this.#sid}:${this.#token}`).toString('base64')}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          To: message.to,
-          From: this.#from,
-          Body: message.body,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      // The body can echo the message back. Report the status only.
-      throw new Error(`Twilio rejected the message: ${response.status}`);
-    }
   }
 }
 
@@ -180,17 +117,7 @@ class ResendEmailProvider implements EmailProvider {
   }
 }
 
-let smsProvider: SmsProvider | undefined;
 let emailProvider: EmailProvider | undefined;
-
-export function getSms(): SmsProvider {
-  if (smsProvider) return smsProvider;
-  smsProvider =
-    (process.env.SMS_PROVIDER ?? 'console') === 'twilio'
-      ? new TwilioSmsProvider()
-      : new ConsoleSmsProvider();
-  return smsProvider;
-}
 
 export function getEmail(): EmailProvider {
   if (emailProvider) return emailProvider;
@@ -201,10 +128,7 @@ export function getEmail(): EmailProvider {
   return emailProvider;
 }
 
-/** Test seams. */
-export function __setSmsProvider(p: SmsProvider | undefined): void {
-  smsProvider = p;
-}
+/** Test seam. */
 export function __setEmailProvider(p: EmailProvider | undefined): void {
   emailProvider = p;
 }

@@ -26,7 +26,7 @@ import { createCompany } from '../lib/db/queries/firm';
 import { inviteOwner, inviteWorker } from '../lib/db/queries/subjects';
 import { resolveFirmScope } from '../lib/auth/scope';
 import { evictDek } from '../lib/security/field-encryption';
-import { __setSmsProvider } from '../lib/services/messaging';
+import { __setEmailProvider } from '../lib/services/messaging';
 import type { CompanySession, FirmSession } from '../lib/auth/session';
 
 /** The app_user login role — the same credential the application runs on. */
@@ -103,6 +103,7 @@ async function seedTenant(label: string): Promise<Tenant> {
   const worker = await inviteWorker(companySession, created.companyId, {
     displayName: `Worker ${label}`,
     workerType: 'EMPLOYEE',
+    inviteEmail: `worker-${label}@personal.test`,
     phoneE164: '+15555559000',
     preferredLocale: 'en',
     jobTitle: null,
@@ -115,6 +116,7 @@ async function seedTenant(label: string): Promise<Tenant> {
   const owner = await inviteOwner(companySession, created.companyId, {
     displayName: `Owner ${label}`,
     ownershipPercent: 100,
+    inviteEmail: `owner-${label}@personal.test`,
     phoneE164: '+15555559001',
     preferredLocale: 'en',
   });
@@ -130,14 +132,14 @@ async function seedTenant(label: string): Promise<Tenant> {
 }
 
 beforeAll(async () => {
-  __setSmsProvider({ name: 'test', async send() {} });
+  __setEmailProvider({ name: 'test', async send() {} });
   a = await seedTenant('A');
   b = await seedTenant('B');
 });
 
 afterAll(async () => {
   evictDek();
-  __setSmsProvider(undefined);
+  __setEmailProvider(undefined);
   if (a) await destroyFirm(a.firm.firmId);
   if (b) await destroyFirm(b.firm.firmId);
   await app.end();

@@ -46,12 +46,21 @@ export default function InviteOwnerForm() {
           className="tabular min-h-[44px] rounded-lg border border-neutral-300 px-3 py-2 text-base"
         />
         <Field
+          id="inviteEmail"
+          label={t('company.inviteOwner.email')}
+          hint={t('company.inviteOwner.emailHint')}
+          error={error('inviteEmail')}
+          type="email"
+          inputMode="email"
+          autoCapitalize="off"
+          required
+        />
+        <Field
           id="phoneE164"
           label={t('company.inviteOwner.phone')}
           hint={t('company.inviteOwner.phoneHint')}
           error={error('phoneE164')}
           inputMode="tel"
-          required
         />
         <SelectField
           id="preferredLocale"

@@ -42,7 +42,26 @@ export const workers = pgTable(
 
     workerType: workerType('worker_type').notNull(),
     displayName: text('display_name').notNull(),
-    phoneE164: text('phone_e164').notNull(),
+
+    /**
+     * Where the invite link is sent. Supplied by the company, which is the
+     * whole point and also the risk: an address on the company's own domain is
+     * a mailbox the company controls, so the link would arrive in the hands of
+     * the party this system exists to exclude. `assertInvitableEmail` refuses
+     * that case.
+     *
+     * Nullable at the database level only because this column was added to a
+     * table that already had rows. Every path that creates a worker requires
+     * it, and `deliverInvite` fails loudly rather than silently skipping a send.
+     */
+    inviteEmail: text('invite_email'),
+
+    /**
+     * Optional since invites moved to email. Retained because a firm chasing an
+     * unresponsive worker has nothing else to call, and because the worker's own
+     * number on `worker_records` is not visible to the company.
+     */
+    phoneE164: text('phone_e164'),
     preferredLocale: localeEnum('preferred_locale').notNull().default('en'),
     status: workerStatus('status').notNull().default('INVITED'),
 

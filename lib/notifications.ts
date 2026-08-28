@@ -1,5 +1,5 @@
 /**
- * Outbound SMS and email, in the recipient's language (spec section 12).
+ * Outbound email, in the recipient's language (spec section 12).
  *
  * The message catalogue is imported directly rather than resolved through
  * next-intl, because most of these are sent from the reminder job, which has no
@@ -9,13 +9,15 @@
  * different timezone woke up.
  *
  * Every message here is generic by design. Spec section 11: reminder content
- * "never includes what data is missing beyond a generic prompt, since SMS is
- * not a secure channel." The link is the exception, and it is single-use,
- * time-limited, and gated.
+ * "never includes what data is missing beyond a generic prompt". The link is
+ * the exception, and it is single-use, time-limited, and gated.
+ *
+ * There is no SMS channel. See `assertInvitableEmail` at the foot of this file
+ * for what email costs and what is done about it.
  */
 import en from '../messages/en.json';
 import es from '../messages/es.json';
-import { getEmail, getSms } from './services/messaging';
+import { getEmail } from './services/messaging';
 import type { Locale } from '../i18n/request';
 
 const CATALOGUES: Record<Locale, unknown> = { en, es };
@@ -37,7 +39,7 @@ export function t(
 
   // Falling back to English is better than rendering a key at someone. A
   // missing Spanish string is a translation bug; a message reading
-  // "notifications.workerInvite.sms" is an incident.
+  // "notifications.workerInvite.body" is an incident.
   const template = resolve(CATALOGUES[locale]) ?? resolve(CATALOGUES.en);
   if (!template) throw new Error(`Missing message for key "${key}".`);
 
@@ -47,17 +49,21 @@ export function t(
 }
 
 export interface InviteNotification {
-  phoneE164: string;
+  /** The company-supplied address, already checked by `assertInvitableEmail`. */
+  email: string;
   locale: Locale;
   companyName: string;
   url: string;
 }
 
 export async function sendWorkerInvite(notification: InviteNotification): Promise<void> {
-  await getSms().send({
-    to: notification.phoneE164,
+  await getEmail().send({
+    to: notification.email,
     locale: notification.locale,
-    body: t(notification.locale, 'notifications.workerInvite.sms', {
+    subject: t(notification.locale, 'notifications.workerInvite.subject', {
+      company: notification.companyName,
+    }),
+    text: t(notification.locale, 'notifications.workerInvite.body', {
       company: notification.companyName,
       url: notification.url,
     }),
@@ -65,10 +71,13 @@ export async function sendWorkerInvite(notification: InviteNotification): Promis
 }
 
 export async function sendOwnerInvite(notification: InviteNotification): Promise<void> {
-  await getSms().send({
-    to: notification.phoneE164,
+  await getEmail().send({
+    to: notification.email,
     locale: notification.locale,
-    body: t(notification.locale, 'notifications.ownerInvite.sms', {
+    subject: t(notification.locale, 'notifications.ownerInvite.subject', {
+      company: notification.companyName,
+    }),
+    text: t(notification.locale, 'notifications.ownerInvite.body', {
       company: notification.companyName,
       url: notification.url,
     }),
@@ -78,10 +87,13 @@ export async function sendOwnerInvite(notification: InviteNotification): Promise
 export async function sendInviteReminder(
   notification: InviteNotification & { subjectType: 'WORKER' | 'OWNER' },
 ): Promise<void> {
-  await getSms().send({
-    to: notification.phoneE164,
+  await getEmail().send({
+    to: notification.email,
     locale: notification.locale,
-    body: t(notification.locale, 'notifications.reminder.sms', {
+    subject: t(notification.locale, 'notifications.reminder.subject', {
+      company: notification.companyName,
+    }),
+    text: t(notification.locale, 'notifications.reminder.body', {
       company: notification.companyName,
       url: notification.url,
     }),
@@ -125,4 +137,53 @@ export async function sendNeedsAttentionEmail(params: {
       url: params.url,
     }),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Who an invite may be sent to
+// ---------------------------------------------------------------------------
+
+export class EmployerControlledMailboxError extends Error {
+  constructor(readonly domain: string) {
+    super(`Refusing to send an invite to an address on the company's own domain (${domain}).`);
+    this.name = 'EmployerControlledMailboxError';
+  }
+}
+
+function domainOf(email: string): string {
+  // `split('@').pop()` on a string with no `@` returns the whole string, which
+  // would make `nonsense` its own domain and compare equal to a company contact
+  // stored the same way. An address without a separator has no domain.
+  const parts = email.trim().toLowerCase().split('@');
+  return parts.length > 1 ? (parts.pop() ?? '') : '';
+}
+
+/**
+ * Refuses an invite address on the company's own email domain.
+ *
+ * This is the price of moving invites from SMS to email, paid back deliberately.
+ *
+ * With a text message the employer types the number but does not receive on it,
+ * and that asymmetry is quietly load-bearing: it is why a link they cannot read
+ * can be sent to somebody they employ. Email has no such asymmetry. If the
+ * company supplies `worker@thecompany.com` — an account they created, on a
+ * domain they administer, in a mailbox they can read — then the invite link
+ * arrives in the hands of the exact party the whole system exists to exclude.
+ * They would not need to attack anything: open the mail, follow the link, and
+ * because a first invite's date-of-birth gate pins on first visit, set a date of
+ * their choosing and fill in the form.
+ *
+ * A determined admin can still register a free mailbox elsewhere, and nothing
+ * short of a real second factor stops that. This catches the case that would
+ * otherwise happen by default, without anybody intending it — which is the case
+ * that actually occurs.
+ */
+export function assertInvitableEmail(inviteEmail: string, companyContactEmail: string | null): void {
+  const target = domainOf(inviteEmail);
+  if (!target) throw new Error('An invite needs an email address.');
+
+  const companyDomain = companyContactEmail ? domainOf(companyContactEmail) : '';
+  if (companyDomain && target === companyDomain) {
+    throw new EmployerControlledMailboxError(target);
+  }
 }

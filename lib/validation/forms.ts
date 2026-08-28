@@ -174,7 +174,17 @@ export const inviteOwnerSchema = z.object({
     .max(100, { message: 'validation.ownership.range' })
     .optional()
     .nullable(),
-  phoneE164: phoneSchema,
+  /**
+   * Where the link goes. The check that it is not on the company's own domain
+   * needs the company row, so it lives in the query layer rather than here —
+   * see `assertInvitableEmail`.
+   */
+  inviteEmail: emailSchema,
+  phoneE164: z
+    .union([z.literal(''), phoneSchema])
+    .transform((v) => (v === '' ? null : v))
+    .optional()
+    .nullable(),
   preferredLocale: localeSchema,
 });
 export type InviteOwnerInput = z.infer<typeof inviteOwnerSchema>;
@@ -182,7 +192,14 @@ export type InviteOwnerInput = z.infer<typeof inviteOwnerSchema>;
 export const inviteWorkerSchema = z.object({
   displayName: required('validation.displayName.required').max(200),
   workerType: z.enum(['EMPLOYEE', 'SUBCONTRACTOR']),
-  phoneE164: phoneSchema,
+  inviteEmail: emailSchema,
+  // Optional since invites moved to email. A firm chasing an unresponsive
+  // worker has nothing else to call, so it is still worth collecting.
+  phoneE164: z
+    .union([z.literal(''), phoneSchema])
+    .transform((v) => (v === '' ? null : v))
+    .optional()
+    .nullable(),
   preferredLocale: localeSchema,
 
   // Payroll fields, entered by the company. Pay rate is deliberately absent —

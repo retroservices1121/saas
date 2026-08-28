@@ -16,16 +16,16 @@ import { createCompany } from '../lib/db/queries/firm';
 import { inviteOwner, inviteWorker } from '../lib/db/queries/subjects';
 import { resolveFirmScope } from '../lib/auth/scope';
 import { uuidv7 } from '../lib/uuid';
-import { __setSmsProvider, type SmsMessage } from '../lib/services/messaging';
+import { __setEmailProvider, type EmailMessage } from '../lib/services/messaging';
 import type { CompanySession, FirmSession } from '../lib/auth/session';
 
-const captured: SmsMessage[] = [];
+const captured: EmailMessage[] = [];
 
 async function main(): Promise<void> {
   const adminUrl = process.env.ADMIN_DATABASE_URL;
   if (!adminUrl) throw new Error('ADMIN_DATABASE_URL is not set.');
 
-  __setSmsProvider({
+  __setEmailProvider({
     name: 'capture',
     async send(message) {
       captured.push(message);
@@ -97,6 +97,7 @@ async function main(): Promise<void> {
   const worker = await inviteWorker(companySession, company.companyId, {
     displayName: 'A. Lovelace',
     workerType: 'EMPLOYEE',
+    inviteEmail: `worker-${tag}@personal.test`,
     phoneE164: '+15555550100',
     preferredLocale: 'es',
     jobTitle: 'Installer',
@@ -109,6 +110,7 @@ async function main(): Promise<void> {
   const owner = await inviteOwner(companySession, company.companyId, {
     displayName: 'D. Vega',
     ownershipPercent: 100,
+    inviteEmail: `owner-${tag}@personal.test`,
     phoneE164: '+15555550200',
     preferredLocale: 'en',
   });

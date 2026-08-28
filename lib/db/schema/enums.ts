@@ -85,6 +85,13 @@ export const sensitivity = pgEnum('sensitivity', ['COMPANY_VISIBLE', 'FIRM_ONLY'
 
 export const noteVisibility = pgEnum('note_visibility', ['COMPANY_AND_FIRM', 'FIRM_ONLY']);
 
+/**
+ * 'SMS' is dead: every notification is email now (see lib/notifications.ts).
+ * The value stays because dropping a Postgres enum member means rewriting the
+ * type and every column using it, and because reminder_log rows written before
+ * the change still carry it — rewriting history to say they were emails would
+ * be a lie about what was actually sent.
+ */
 export const reminderChannel = pgEnum('reminder_channel', ['SMS', 'EMAIL']);
 
 export const inviteSubjectType = pgEnum('invite_subject_type', ['OWNER', 'WORKER']);

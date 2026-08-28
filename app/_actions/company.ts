@@ -19,6 +19,7 @@ import {
 import { inviteOwner, inviteWorker } from '../../lib/db/queries/subjects';
 import { uploadDocument, UploadRejectedError, type DocType } from '../../lib/documents';
 import { captureSignature } from '../../lib/esign/sign';
+import { EmployerControlledMailboxError } from '../../lib/notifications';
 import {
   companyBankingSchema,
   companyProfileSchema,
@@ -149,7 +150,8 @@ export async function companyInviteWorkerAction(
   const parsed = inviteWorkerSchema.safeParse({
     displayName: formData.get('displayName'),
     workerType: formData.get('workerType'),
-    phoneE164: formData.get('phoneE164'),
+    inviteEmail: formData.get('inviteEmail'),
+    phoneE164: formData.get('phoneE164') || '',
     preferredLocale: formData.get('preferredLocale'),
     jobTitle: formData.get('jobTitle') || null,
     startDate: formData.get('startDate') || null,
@@ -159,7 +161,15 @@ export async function companyInviteWorkerAction(
   });
   if (!parsed.success) return fieldErrors(parsed.error);
 
-  await inviteWorker(session, session.companyId, parsed.data);
+  try {
+    await inviteWorker(session, session.companyId, parsed.data);
+  } catch (err) {
+    if (err instanceof EmployerControlledMailboxError) {
+      return { fieldErrors: { inviteEmail: 'company.errors.employerMailbox' } };
+    }
+    throw err;
+  }
+
   revalidatePath('/company/workers');
   redirect('/company/workers');
 }
@@ -173,12 +183,21 @@ export async function companyInviteOwnerAction(
   const parsed = inviteOwnerSchema.safeParse({
     displayName: formData.get('displayName'),
     ownershipPercent: formData.get('ownershipPercent') || null,
-    phoneE164: formData.get('phoneE164'),
+    inviteEmail: formData.get('inviteEmail'),
+    phoneE164: formData.get('phoneE164') || '',
     preferredLocale: formData.get('preferredLocale'),
   });
   if (!parsed.success) return fieldErrors(parsed.error);
 
-  await inviteOwner(session, session.companyId, parsed.data);
+  try {
+    await inviteOwner(session, session.companyId, parsed.data);
+  } catch (err) {
+    if (err instanceof EmployerControlledMailboxError) {
+      return { fieldErrors: { inviteEmail: 'company.errors.employerMailbox' } };
+    }
+    throw err;
+  }
+
   revalidatePath('/company/owners');
   redirect('/company/owners');
 }

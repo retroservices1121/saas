@@ -24,6 +24,10 @@ import {
 } from '../lib/validation/identity';
 import { scanForSensitiveFields, keyWords } from '../lib/security/response-scan';
 import { assertNoSensitiveContent } from '../lib/services/messaging';
+import {
+  assertInvitableEmail,
+  EmployerControlledMailboxError,
+} from '../lib/notifications';
 import { redact, redactString } from '../lib/security/redaction';
 
 const errorKeys = (r: { errors: { key: string }[] }) => r.errors.map((e) => e.key);
@@ -294,5 +298,46 @@ describe('log redaction', () => {
   it('never prints binary', () => {
     expect(redact({ tinEnc: Buffer.from('secret') })).toEqual({ tinEnc: '[redacted]' });
     expect(redact(Buffer.from('abc'))).toBe('[binary 3b]');
+  });
+});
+
+describe('who an invite may be sent to', () => {
+  it('refuses an address on the company\'s own email domain', () => {
+    // The price of moving invites from SMS to email. With a text message the
+    // employer types the number but does not receive on it; email has no such
+    // asymmetry, and an address they administer is an inbox they can read.
+    expect(() =>
+      assertInvitableEmail('worker@northside.test', 'office@northside.test'),
+    ).toThrow(EmployerControlledMailboxError);
+  });
+
+  it('is case- and whitespace-insensitive about it', () => {
+    expect(() =>
+      assertInvitableEmail('  Worker@NORTHSIDE.test ', 'office@northside.test'),
+    ).toThrow(EmployerControlledMailboxError);
+  });
+
+  it('allows an address the person plausibly controls themselves', () => {
+    expect(() =>
+      assertInvitableEmail('ada@personal.test', 'office@northside.test'),
+    ).not.toThrow();
+  });
+
+  it('allows anything when the company has no contact address on file', () => {
+    // Nothing to compare against. Refusing every invite because the company
+    // profile is incomplete would block onboarding for a reason unrelated to
+    // the risk.
+    expect(() => assertInvitableEmail('ada@personal.test', null)).not.toThrow();
+  });
+
+  it('does not match on a substring of the domain', () => {
+    // northside.test and not-northside.test are different organisations.
+    expect(() =>
+      assertInvitableEmail('ada@not-northside.test', 'office@northside.test'),
+    ).not.toThrow();
+  });
+
+  it('refuses an address with no domain at all', () => {
+    expect(() => assertInvitableEmail('nonsense', 'office@northside.test')).toThrow();
   });
 });

@@ -14,7 +14,7 @@ import { runReminders } from '../lib/jobs/reminders';
 import { expireExports, purgeRecords, pruneSessions } from '../lib/jobs/retention';
 import { createCompany } from '../lib/db/queries/firm';
 import { inviteWorker } from '../lib/db/queries/subjects';
-import { __setSmsProvider, type SmsMessage } from '../lib/services/messaging';
+import { __setEmailProvider, type EmailMessage } from '../lib/services/messaging';
 import { __setStorageProvider } from '../lib/services/storage';
 import { evictDek } from '../lib/security/field-encryption';
 import { resolveFirmScope } from '../lib/auth/scope';
@@ -27,7 +27,7 @@ let companyId: string;
 let workerId: string;
 let sql: AdminSql;
 
-const sent: SmsMessage[] = [];
+const sent: EmailMessage[] = [];
 const objects = new Map<string, Buffer>();
 
 /** Moves a row's creation date back, to stand in for the passage of time. */
@@ -38,7 +38,7 @@ async function ageWorker(id: string, days: number): Promise<void> {
 }
 
 beforeAll(async () => {
-  __setSmsProvider({
+  __setEmailProvider({
     name: 'test',
     async send(message) {
       sent.push(message);
@@ -98,6 +98,7 @@ beforeAll(async () => {
   const invited = await inviteWorker(companySession, companyId, {
     displayName: 'Slow Responder',
     workerType: 'EMPLOYEE',
+    inviteEmail: 'slow@personal.test',
     phoneE164: '+15555550999',
     preferredLocale: 'es',
     jobTitle: null,
@@ -111,7 +112,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   evictDek();
-  __setSmsProvider(undefined);
+  __setEmailProvider(undefined);
   __setStorageProvider(undefined);
   if (firm) await destroyFirm(firm.firmId);
   await sql.end();
@@ -134,24 +135,24 @@ describe('reminders', () => {
     // nightly job does — so anything else outstanding on the instance lands in
     // `sent` too. An unfiltered assertion here passes on a clean database and
     // fails three days after somebody runs `pnpm db:seed`.
-    expect(sent.filter((message) => message.to === '+15555550999')).toHaveLength(0);
+    expect(sent.filter((message) => message.to === 'slow@personal.test')).toHaveLength(0);
   });
 
   it('sends one on day three, in the subject\'s own language', async () => {
     await ageWorker(workerId, 3);
     await runReminders(sql);
 
-    const mine = sent.filter((message) => message.to === '+15555550999');
+    const mine = sent.filter((message) => message.to === 'slow@personal.test');
     expect(mine).toHaveLength(1);
     expect(mine[0]?.locale).toBe('es');
-    // Generic prompt only. SMS is not a secure channel (spec section 11).
-    expect(mine[0]?.body).not.toMatch(/tax|bank|SSN|ITIN/i);
-    expect(mine[0]?.body).toContain('Job Test Co');
+    // Generic prompt only. Email is not a secure channel (spec section 11).
+    expect(mine[0]?.text).not.toMatch(/tax|bank|SSN|ITIN/i);
+    expect(mine[0]?.text).toContain('Job Test Co');
   });
 
   it('is idempotent — running it again the same day sends nothing', async () => {
     await runReminders(sql);
-    expect(sent.filter((message) => message.to === '+15555550999')).toHaveLength(0);
+    expect(sent.filter((message) => message.to === 'slow@personal.test')).toHaveLength(0);
   });
 
   it('issues a fresh link rather than resending the old one', async () => {
@@ -176,7 +177,7 @@ describe('reminders', () => {
     // at once when it comes back.
     await ageWorker(workerId, 7);
     await runReminders(sql);
-    expect(sent.filter((message) => message.to === '+15555550999')).toHaveLength(1);
+    expect(sent.filter((message) => message.to === 'slow@personal.test')).toHaveLength(1);
   });
 
   it('escalates to NEEDS_ATTENTION after fourteen days, and stops texting', async () => {
@@ -188,7 +189,7 @@ describe('reminders', () => {
       workerId,
     );
     expect(worker?.status).toBe('NEEDS_ATTENTION');
-    expect(sent.filter((message) => message.to === '+15555550999')).toHaveLength(0);
+    expect(sent.filter((message) => message.to === 'slow@personal.test')).toHaveLength(0);
 
     const audited = await readRow<{ n: string }>(
       `select count(*)::text as n from audit_log

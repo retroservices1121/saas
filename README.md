@@ -20,7 +20,7 @@ not calculate, withhold, file, or move money.
 
 ## Build status
 
-All seventeen steps of the spec's build order are implemented. 159 tests pass
+All seventeen steps of the spec's build order are implemented. 165 tests pass
 against Postgres 16 with row level security forced.
 
 | Step | Status |
@@ -74,7 +74,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"     
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"     # AUTH_SECRET
 
 pnpm db:bootstrap    # migrate, then create app_user
-pnpm test            # 159 tests, needs the database
+pnpm test            # 165 tests, needs the database
 pnpm db:seed         # a demo firm, company, worker and owner, with links
 pnpm dev
 ```
@@ -191,7 +191,13 @@ for one.
 What is implemented: the first visit pins whatever date is entered, and every
 later visit must match it. That defends a link forwarded or intercepted
 mid-flow, and it is what makes screen 3 a read-only confirmation. It does not
-defend the initial SMS.
+defend the initial email.
+
+This is why `assertInvitableEmail` refuses an invite address on the company's
+own email domain. The two gaps compound: an employer who controls the mailbox
+receives the first link, and a first link's gate pins on whatever date the
+reader types. Refusing the mailbox removes the only version of that attack that
+happens by default rather than on purpose.
 
 Closing that gap means asking the company to supply the worker's date of birth
 when creating them — which the spec says they do not have, though in practice an
@@ -320,7 +326,7 @@ drizzle/
   prelude/             app schema, uuid v7
   generated/           produced by `pnpm db:generate` — never hand-edited
   post/                RLS, roles, grants, triggers, constraints
-tests/                 159 tests; isolation.test.ts is spec section 5,
+tests/                 165 tests; isolation.test.ts is spec section 5,
                        rls-policies.test.ts exercises layer 1 on its own
 docs/DESIGN_BRIEF.md   a brief for designing the UI properly
 ```
@@ -355,7 +361,6 @@ refactor.
 |---|---|---|
 | Key management | master key in env, same AES-256-GCM envelope | Vault Transit (`KMS_PROVIDER=vault`). AWS KMS is stubbed. |
 | Object storage | filesystem | Any S3-compatible bucket (`STORAGE_PROVIDER=s3`) |
-| SMS | server log | Twilio (implemented, needs credentials) |
 | Email | server log | Resend (implemented, needs credentials) |
 
 ---
@@ -429,7 +434,9 @@ healthcheck:
 1. New service → same GitHub repo.
 2. Variables → `RAILWAY_CONFIG_PATH = railway.cron.json`, and give it the same
    `ADMIN_DATABASE_URL`, `KMS_PROVIDER`, `VAULT_*`, `STORAGE_PROVIDER`, `S3_*`,
-   `SMS_PROVIDER` and `TWILIO_*` values as the web service.
+   `EMAIL_PROVIDER`, `RESEND_API_KEY` and `EMAIL_FROM` values as the web
+   service. The nightly job sends reminders; without the mail credentials it
+   will run to completion and deliver nothing.
 3. Confirm Settings → Cron Schedule reads `0 9 * * *` (UTC). Set it there if the
    config file did not apply it.
 

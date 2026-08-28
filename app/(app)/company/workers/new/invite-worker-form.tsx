@@ -55,12 +55,21 @@ export default function InviteWorkerForm() {
           </SelectField>
         </div>
         <Field
+          id="inviteEmail"
+          label={t('company.inviteWorker.email')}
+          hint={t('company.inviteWorker.emailHint')}
+          error={error('inviteEmail')}
+          type="email"
+          inputMode="email"
+          autoCapitalize="off"
+          required
+        />
+        <Field
           id="phoneE164"
           label={t('company.inviteWorker.phone')}
           hint={t('company.inviteWorker.phoneHint')}
           error={error('phoneE164')}
           inputMode="tel"
-          required
         />
       </Card>
 

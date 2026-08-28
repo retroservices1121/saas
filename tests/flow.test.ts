@@ -40,7 +40,7 @@ import { resolveFirmScope } from '../lib/auth/scope';
 import { scanForSensitiveFields } from '../lib/security/response-scan';
 import { sql } from 'drizzle-orm';
 import { withScope, schema, ScopeViolationError } from '../lib/db/scoped';
-import { __setSmsProvider, type SmsMessage } from '../lib/services/messaging';
+import { __setEmailProvider, type EmailMessage } from '../lib/services/messaging';
 import { __setStorageProvider } from '../lib/services/storage';
 import type { CompanySession, FirmSession } from '../lib/auth/session';
 
@@ -49,8 +49,8 @@ let firmSession: FirmSession;
 let companySession: CompanySession;
 let companyId: string;
 
-/** Captured outbound SMS, so the test can read the link the worker would tap. */
-const sent: SmsMessage[] = [];
+/** Captured outbound email, so the test can read the link the worker would open. */
+const sent: EmailMessage[] = [];
 
 /** In-memory object store, so signature PDFs do not litter the working tree. */
 const objects = new Map<string, Buffer>();
@@ -61,7 +61,7 @@ const ACCOUNT = '000123456789';
 const DOB = '1990-04-01';
 
 beforeAll(async () => {
-  __setSmsProvider({
+  __setEmailProvider({
     name: 'test',
     async send(message) {
       sent.push(message);
@@ -97,7 +97,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   evictDek();
-  __setSmsProvider(undefined);
+  __setEmailProvider(undefined);
   __setStorageProvider(undefined);
   if (firm) await destroyFirm(firm.firmId);
   await closeAdmin();
@@ -168,12 +168,13 @@ describe('7.4 / 7.5 the worker path', () => {
   let workerId: string;
   let inviteToken: string;
 
-  it('the company invites a worker and an SMS goes out with a link', async () => {
+  it('the company invites a worker and an email goes out with a link', async () => {
     sent.length = 0;
 
     const result = await inviteWorker(companySession, companyId, {
       displayName: 'A. Lovelace',
       workerType: 'EMPLOYEE',
+      inviteEmail: 'a.lovelace@personal.test',
       phoneE164: '+15555550100',
       preferredLocale: 'es',
       jobTitle: 'Installer',
@@ -186,10 +187,10 @@ describe('7.4 / 7.5 the worker path', () => {
     workerId = result.subjectId;
     expect(sent).toHaveLength(1);
     expect(sent[0]?.locale).toBe('es');
-    expect(sent[0]?.body).toContain('Northside Drywall LLC');
+    expect(sent[0]?.text).toContain('Northside Drywall LLC');
 
-    const match = /\/i\/([A-Za-z0-9_-]+)/.exec(sent[0]!.body);
-    expect(match, 'the SMS carries an invite link').not.toBeNull();
+    const match = /\/i\/([A-Za-z0-9_-]+)/.exec(sent[0]!.text);
+    expect(match, 'the email carries an invite link').not.toBeNull();
     inviteToken = match![1]!;
   });
 
@@ -406,6 +407,7 @@ describe('9. e-signature', () => {
     const result = await inviteWorker(companySession, companyId, {
       displayName: 'G. Hopper',
       workerType: 'SUBCONTRACTOR',
+      inviteEmail: 'g.hopper@personal.test',
       phoneE164: '+15555550200',
       preferredLocale: 'en',
       jobTitle: null,
@@ -537,6 +539,7 @@ describe('7.3 owners supply their own tax IDs', () => {
     const result = await inviteOwner(companySession, companyId, {
       displayName: 'D. Vega',
       ownershipPercent: 100,
+      inviteEmail: 'd.vega@personal.test',
       phoneE164: '+15555550300',
       preferredLocale: 'en',
     });

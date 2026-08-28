@@ -28,7 +28,16 @@ export const companyOwners = pgTable(
     // --- entered by the company admin ---
     displayName: text('display_name').notNull(),
     ownershipPercent: numeric('ownership_percent', { precision: 5, scale: 2 }),
-    phoneE164: text('phone_e164').notNull(),
+
+    /**
+     * Where the invite link is sent. Named `invite_email` rather than `email`
+     * because `email` already exists further down as the SELF-supplied one —
+     * the address the owner gives on their own form. Two columns, two
+     * provenances, and the column grants treat them differently: a company may
+     * write this one and cannot read the other.
+     */
+    inviteEmail: text('invite_email'),
+    phoneE164: text('phone_e164'),
     preferredLocale: localeEnum('preferred_locale').notNull().default('en'),
     status: ownerStatus('status').notNull().default('INVITED'),
 

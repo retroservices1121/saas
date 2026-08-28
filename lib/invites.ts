@@ -13,17 +13,22 @@
  *
  *   Time-limited. `expires_at`, seven days by default.
  *
- *   Hashed. The raw token is in the SMS and nowhere else. A database dump
- *   yields no working links.
+ *   Hashed. The raw token is in the invite email and nowhere else. A database
+ *   dump yields no working links.
  *
  *   Second factor: the recipient's date of birth. This is the part that matters
  *   most and it is easy to mistake for theatre. The threat is not an outsider
- *   guessing a 256-bit token — it is the company admin, who typed the phone
- *   number, who can plausibly ask to "check" a worker's phone, and who is the
- *   exact party the whole system exists to keep out. They do not know the date
- *   of birth, because the worker has not told them. Five failures locks the
- *   invite for sixty minutes and alerts the FIRM, not the company — alerting
- *   the company would tell the suspected party that they have been noticed.
+ *   guessing a 256-bit token — it is the company admin, who typed the address
+ *   the link was sent to, and who is the exact party the whole system exists to
+ *   keep out. They do not know the date of birth, because the worker has not
+ *   told them. Five failures locks the invite for sixty minutes and alerts the
+ *   FIRM, not the company — alerting the company would tell the suspected party
+ *   that they have been noticed.
+ *
+ *   `assertInvitableEmail` covers the half of this the gate cannot: an admin
+ *   who supplies an address on a domain they administer receives the link
+ *   themselves, and on a first invite there is no stored date of birth for the
+ *   gate to check against.
  */
 import { and, eq, sql } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
