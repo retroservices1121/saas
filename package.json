@@ -19,6 +19,7 @@
     "test:isolation": "vitest run tests/isolation",
     "test:watch": "vitest",
     "db:seed": "tsx scripts/seed-demo.ts",
+    "db:create-platform-admin": "tsx scripts/create-platform-admin.ts",
     "jobs": "tsx scripts/jobs.ts",
     "zip:verify": "python scripts/verify-zip.py"
   },

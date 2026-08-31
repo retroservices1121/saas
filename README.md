@@ -425,6 +425,28 @@ worst possible moment to discover it.
 Rotation is `vault write -f transit/keys/onboarding/rotate`. New DEKs wrap under
 v2; every existing `vault:v1:` DEK keeps unwrapping. Nothing is re-encrypted.
 
+### The first account
+
+A freshly migrated database has nobody who can log in. Every account has a
+maker — a platform admin creates a firm and its first admin, a firm admin
+creates a company and its first admin, a company admin invites owners and
+workers — and that chain has to start outside the request path, because the
+first account has no session that predates it.
+
+```bash
+pnpm db:create-platform-admin "Ada Lovelace" ada@yourfirm.com
+```
+
+It prints a 24-hour single-use setup link. It does **not** set a password: the
+first admin enrolls their own password and their own authenticator through the
+same `/setup/[token]` screen everyone else uses, so no operator ever knows their
+credentials. The link is printed rather than emailed because at bootstrap the
+mail credentials may not be configured yet, and a link that silently went
+nowhere would leave an account nobody can reach.
+
+It refuses to run a second time. Further platform staff go through the platform
+UI, where the action is audited — this script is not.
+
 ### Jobs — a second Railway service
 
 Reminders and retention do not run unless something schedules them. On Railway
