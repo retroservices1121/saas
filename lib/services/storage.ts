@@ -141,23 +141,34 @@ class LocalStorageProvider implements StorageProvider {
 // ---------------------------------------------------------------------------
 
 /**
- * Railway exposes a bucket as BUCKET / ACCESS_KEY_ID / SECRET_ACCESS_KEY /
- * ENDPOINT / REGION. Those names are generic enough to collide with something
- * else in a busy environment, so the S3_-prefixed names win when both are
- * present, and the Railway ones are the fallback.
+ * Railway exposes an attached Bucket under the AWS SDK's own names —
+ * AWS_S3_BUCKET_NAME / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY /
+ * AWS_ENDPOINT_URL / AWS_DEFAULT_REGION — with the older unprefixed BUCKET /
+ * ACCESS_KEY_ID / SECRET_ACCESS_KEY / ENDPOINT / REGION set on services that
+ * attached one before the rename. Both are accepted. The S3_-prefixed names
+ * win when present, so a deliberate setting is never shadowed by whatever the
+ * platform injected.
  */
 function s3Config() {
-  const bucket = process.env.S3_BUCKET ?? process.env.BUCKET;
-  const accessKeyId = process.env.S3_ACCESS_KEY_ID ?? process.env.ACCESS_KEY_ID;
-  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY ?? process.env.SECRET_ACCESS_KEY;
-  const endpoint = process.env.S3_ENDPOINT ?? process.env.ENDPOINT;
-  const region = process.env.S3_REGION ?? process.env.REGION ?? 'auto';
+  const pick = (...names: string[]): string | undefined => {
+    for (const name of names) {
+      const value = process.env[name];
+      if (value) return value;
+    }
+    return undefined;
+  };
+
+  const bucket = pick('S3_BUCKET', 'AWS_S3_BUCKET_NAME', 'BUCKET');
+  const accessKeyId = pick('S3_ACCESS_KEY_ID', 'AWS_ACCESS_KEY_ID', 'ACCESS_KEY_ID');
+  const secretAccessKey = pick('S3_SECRET_ACCESS_KEY', 'AWS_SECRET_ACCESS_KEY', 'SECRET_ACCESS_KEY');
+  const endpoint = pick('S3_ENDPOINT', 'AWS_ENDPOINT_URL', 'ENDPOINT');
+  const region = pick('S3_REGION', 'AWS_DEFAULT_REGION', 'REGION') ?? 'auto';
 
   if (!bucket || !accessKeyId || !secretAccessKey) {
     throw new Error(
       'STORAGE_PROVIDER=s3 requires a bucket name, an access key id, and a secret access key.\n' +
-        'On Railway, attaching a Bucket to the service provides BUCKET, ACCESS_KEY_ID, ' +
-        'SECRET_ACCESS_KEY, ENDPOINT and REGION automatically.',
+        'On Railway, attaching a Bucket to the service provides AWS_S3_BUCKET_NAME, ' +
+        'AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ENDPOINT_URL and AWS_DEFAULT_REGION automatically.',
     );
   }
 

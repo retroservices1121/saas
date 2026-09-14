@@ -371,9 +371,10 @@ Nothing here needs AWS.
 
 ### Storage — Railway Buckets
 
-Attach a Bucket to the service. Railway injects `BUCKET`, `ACCESS_KEY_ID`,
-`SECRET_ACCESS_KEY`, `ENDPOINT` and `REGION`, which the S3 provider picks up
-without further configuration. Set `STORAGE_PROVIDER=s3`.
+Attach a Bucket to the service. Railway injects `AWS_S3_BUCKET_NAME`,
+`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL` and
+`AWS_DEFAULT_REGION`, which the S3 provider picks up without further
+configuration. Set `STORAGE_PROVIDER=s3`.
 
 The same provider works unchanged against Cloudflare R2, MinIO, and AWS S3 —
 they are the same API.
