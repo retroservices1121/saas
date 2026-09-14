@@ -455,19 +455,28 @@ that is a **second service from the same repo**, with a cron schedule and no
 healthcheck:
 
 1. New service → same GitHub repo.
-2. Variables → `RAILWAY_CONFIG_PATH = railway.cron.json`, and give it the same
-   `ADMIN_DATABASE_URL`, `KMS_PROVIDER`, `VAULT_*`, `STORAGE_PROVIDER`, `AWS_*`
-   (or `S3_*`), `EMAIL_PROVIDER`, `RESEND_API_KEY` and `EMAIL_FROM` values as
-   the web service. Use Railway variable references — `${{saas.ADMIN_DATABASE_URL}}`
-   and so on — rather than pasting values, so rotating a key on the web service
-   rotates it here too. The nightly job sends reminders; without the mail
-   credentials it will run to completion and deliver nothing.
-3. Confirm Settings → Cron Schedule reads `0 9 * * *` (UTC). Set it there if the
-   config file did not apply it.
+2. Variables: the same `ADMIN_DATABASE_URL`, `KMS_PROVIDER`, `VAULT_*`,
+   `STORAGE_PROVIDER`, `AWS_*` (or `S3_*`), `EMAIL_PROVIDER`, `RESEND_API_KEY`
+   and `EMAIL_FROM` values as the web service. Use Railway variable references —
+   `${{saas.ADMIN_DATABASE_URL}}` and so on — rather than pasting values, so
+   rotating a key on the web service rotates it here too. The nightly job sends
+   reminders; without the mail credentials it will run to completion and
+   deliver nothing.
+3. Settings → Build → Custom Build Command: anything that is not `next build`
+   (`echo skip` will do). The cron service runs its scripts through tsx and
+   never serves a page; a Next build here is minutes of wasted work and fails
+   anyway, because page-data collection wants `DATABASE_URL` at build time.
+4. Settings → Deploy → Custom Start Command `pnpm jobs nightly`, Cron Schedule
+   `0 9 * * *` (UTC), Restart Policy **Never**.
 
-`railway.cron.json` sets the start command to `pnpm jobs nightly` and
-`restartPolicyType: NEVER` — a cron service that restarts on exit is an infinite
-loop, not a schedule.
+`railway.cron.json` records the same settings, but Railway no longer applies a
+per-service config file — `RAILWAY_CONFIG_PATH` is inert and the API refuses to
+set one, config-as-code having been deprecated in favour of `.railway/railway.ts`.
+Until that migration is done, the settings above are set by hand (or through
+`serviceInstanceUpdate` on the GraphQL API) and the JSON file is documentation.
+
+`restartPolicyType: NEVER` matters — a cron service that restarts on exit is an
+infinite loop, not a schedule.
 
 Two failure modes are worth knowing about, because both are silent:
 
