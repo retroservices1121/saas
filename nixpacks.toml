@@ -1,0 +1,6 @@
+# NODE_ENV=production makes pnpm skip devDependencies, but `next build` needs
+# tailwindcss, postcss and typescript, and the start commands — `db:migrate`,
+# `jobs` — run their scripts through tsx. Install everything. Both Railway
+# services (web and cron) build from this file.
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile --prod=false"]
