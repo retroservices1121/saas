@@ -456,10 +456,12 @@ healthcheck:
 
 1. New service → same GitHub repo.
 2. Variables → `RAILWAY_CONFIG_PATH = railway.cron.json`, and give it the same
-   `ADMIN_DATABASE_URL`, `KMS_PROVIDER`, `VAULT_*`, `STORAGE_PROVIDER`, `S3_*`,
-   `EMAIL_PROVIDER`, `RESEND_API_KEY` and `EMAIL_FROM` values as the web
-   service. The nightly job sends reminders; without the mail credentials it
-   will run to completion and deliver nothing.
+   `ADMIN_DATABASE_URL`, `KMS_PROVIDER`, `VAULT_*`, `STORAGE_PROVIDER`, `AWS_*`
+   (or `S3_*`), `EMAIL_PROVIDER`, `RESEND_API_KEY` and `EMAIL_FROM` values as
+   the web service. Use Railway variable references — `${{saas.ADMIN_DATABASE_URL}}`
+   and so on — rather than pasting values, so rotating a key on the web service
+   rotates it here too. The nightly job sends reminders; without the mail
+   credentials it will run to completion and deliver nothing.
 3. Confirm Settings → Cron Schedule reads `0 9 * * *` (UTC). Set it there if the
    config file did not apply it.
 
