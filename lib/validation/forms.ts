@@ -34,7 +34,13 @@ function refineWith(
   return (value, ctx) => {
     const result = fn(value);
     for (const issue of result.errors) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue.key, params: issue.values });
+      // The validators return bare keys ('routing.checksum'); the forms look
+      // them up under `validation.`, as the schemas below do for their own.
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `validation.${issue.key}`,
+        params: issue.values,
+      });
     }
   };
 }
