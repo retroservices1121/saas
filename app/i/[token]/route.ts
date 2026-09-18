@@ -32,7 +32,12 @@ export async function GET(
   const { token } = await params;
   const state = await openInvite(token, clientContext(request));
 
-  const to = (path: string) => new URL(path, request.nextUrl.origin);
+  // Behind Railway's proxy, request.nextUrl.origin is the container's own
+  // listener — https://localhost:8080 — not the host the worker typed. APP_URL
+  // is what every other link in the system is built from, so it is what the
+  // redirect is built from too; nextUrl is only the fallback for local dev.
+  const origin = (process.env.APP_URL ?? request.nextUrl.origin).replace(/\/$/, '');
+  const to = (path: string) => new URL(path, origin);
 
   if (state.status === 'unusable') return NextResponse.redirect(to('/i/expired'));
   if (state.status === 'locked') return NextResponse.redirect(to('/i/locked'));
