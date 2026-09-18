@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   // The platform handles tax IDs and bank accounts. It should never appear in
   // a search index, and no invite URL should ever be crawled.
   robots: { index: false, follow: false, nocache: true },
+  // The app ships English and Spanish itself. Without this, Chrome sees
+  // lang="es" after the switcher is used and machine-translates the page
+  // straight back — so the switch appears to do nothing, and worse, the
+  // legal text in the e-signature documents is silently replaced by Google's
+  // rendering of it.
+  other: { google: 'notranslate' },
 };
 
 export const viewport: Viewport = {
