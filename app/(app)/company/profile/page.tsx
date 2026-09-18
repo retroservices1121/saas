@@ -31,6 +31,7 @@ export default async function CompanyProfilePage() {
         disabilityPolicyNumber: schema.companies.disabilityPolicyNumber,
         disabilityCarrier: schema.companies.disabilityCarrier,
         disabilityExpiresOn: schema.companies.disabilityExpiresOn,
+        updatedAt: schema.companies.updatedAt,
       })
       .from(schema.companies)
       .where(eq(schema.companies.id, session.companyId))
@@ -44,7 +45,11 @@ export default async function CompanyProfilePage() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
       <h1 className="text-xl font-semibold tracking-tight">{t('company.profile.title')}</h1>
 
+      {/* Keyed on the row version: a save re-renders this page with the new
+          values, and the form remounts from them rather than keeping the
+          state it was first mounted with. */}
       <ProfileForm
+        key={company.updatedAt.toISOString()}
         defaults={{
           legalName: company.legalName,
           dbaName: company.dbaName ?? '',

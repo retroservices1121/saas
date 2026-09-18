@@ -682,6 +682,14 @@
     }
   },
   "company": {
+    "nav": {
+      "overview": "Resumen",
+      "profile": "Perfil",
+      "banking": "Cuenta bancaria",
+      "documents": "Documentos",
+      "workers": "Trabajadores",
+      "owners": "Propietarios"
+    },
     "dashboard": {
       "title": "Incorporación",
       "checklist": "Lo que falta por hacer",

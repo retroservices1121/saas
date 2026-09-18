@@ -80,7 +80,11 @@ export async function saveProfileAction(
   if (!parsed.success) return fieldErrors(parsed.error);
 
   await updateCompanyProfile(session, parsed.data);
-  revalidatePath('/company');
+  // 'layout' so /company/profile itself is re-rendered in this response. React
+  // resets the form's fields once the action completes; if the page is not
+  // re-sent, the reset lands on the defaults from before the save and the
+  // screen shows the old value over a row that was in fact updated.
+  revalidatePath('/company', 'layout');
   return { ok: true };
 }
 

@@ -676,6 +676,14 @@
     }
   },
   "company": {
+    "nav": {
+      "overview": "Overview",
+      "profile": "Profile",
+      "banking": "Bank account",
+      "documents": "Documents",
+      "workers": "Workers",
+      "owners": "Owners"
+    },
     "dashboard": {
       "title": "Onboarding",
       "checklist": "What is left to do",

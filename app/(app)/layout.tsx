@@ -42,6 +42,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </Link>
               </nav>
             ) : null}
+
+            {/* Profile, banking and documents are COMPANY_ADMIN only; the
+                pages refuse COMPANY_STAFF, so the links are not offered. */}
+            {session.kind === 'company' ? (
+              <nav className="flex flex-wrap items-center gap-3 text-sm">
+                <Link href="/company" className="text-neutral-600 hover:text-neutral-900">
+                  {t('company.nav.overview')}
+                </Link>
+                {session.role === 'COMPANY_ADMIN' ? (
+                  <>
+                    <Link href="/company/profile" className="text-neutral-600 hover:text-neutral-900">
+                      {t('company.nav.profile')}
+                    </Link>
+                    <Link href="/company/banking" className="text-neutral-600 hover:text-neutral-900">
+                      {t('company.nav.banking')}
+                    </Link>
+                    <Link href="/company/documents" className="text-neutral-600 hover:text-neutral-900">
+                      {t('company.nav.documents')}
+                    </Link>
+                  </>
+                ) : null}
+                <Link href="/company/workers" className="text-neutral-600 hover:text-neutral-900">
+                  {t('company.nav.workers')}
+                </Link>
+                <Link href="/company/owners" className="text-neutral-600 hover:text-neutral-900">
+                  {t('company.nav.owners')}
+                </Link>
+              </nav>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-3">
