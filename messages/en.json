@@ -301,6 +301,7 @@
     },
     "routing": {
       "title": "Routing number",
+      "label": "Routing number",
       "hint": "Nine digits, usually the leftmost number at the bottom of a check."
     },
     "account": {
@@ -594,7 +595,8 @@
     "errors": {
       "check": "Please check the highlighted fields.",
       "notFound": "That record could not be found.",
-      "noValue": "There is no value recorded for that field."
+      "noValue": "There is no value recorded for that field.",
+      "emailTaken": "An account with this email already exists. Each person signs in with one address."
     },
     "export": {
       "title": "Export",
@@ -813,7 +815,6 @@
       "check": "Please check the highlighted fields.",
       "noValue": "There is nothing recorded for that field.",
       "revealFailed": "That could not be revealed.",
-      "emailTaken": "An account with this email already exists. Each person signs in with one address.",
       "employerMailbox": "That address is on your company's own email domain, which means you could read the invite and open the link yourself. Use an address the person controls personally."
     }
   },

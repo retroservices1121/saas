@@ -307,6 +307,7 @@
     },
     "routing": {
       "title": "Número de ruta",
+      "label": "Número de ruta",
       "hint": "Nueve dígitos, normalmente el número más a la izquierda en la parte inferior de un cheque."
     },
     "account": {
@@ -600,7 +601,8 @@
     "errors": {
       "check": "Revise los campos señalados.",
       "notFound": "No se encontró ese registro.",
-      "noValue": "No hay ningún valor registrado para ese campo."
+      "noValue": "No hay ningún valor registrado para ese campo.",
+      "emailTaken": "Ya existe una cuenta con este correo. Cada persona inicia sesión con una sola dirección."
     },
     "export": {
       "title": "Exportar",
@@ -819,7 +821,6 @@
       "check": "Revise los campos señalados.",
       "noValue": "No hay nada registrado para ese campo.",
       "revealFailed": "No se pudo revelar.",
-      "emailTaken": "Ya existe una cuenta con este correo. Cada persona inicia sesión con una sola dirección.",
       "employerMailbox": "Esa dirección pertenece al dominio de correo de su propia empresa, lo que significa que usted podría leer la invitación y abrir el enlace. Use una dirección que la persona controle personalmente."
     }
   },
