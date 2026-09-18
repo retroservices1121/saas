@@ -14,6 +14,7 @@ import { requirePlatform } from '../../lib/auth/current';
 import { createFirm, setFirmStatus } from '../../lib/db/queries/platform';
 import { sendStaffSetupEmail } from '../../lib/notifications';
 import { emailSchema } from '../../lib/validation/forms';
+import { USERS_EMAIL_UNIQUE, isUniqueViolation } from '../../lib/db/errors';
 
 export interface PlatformState {
   error?: string;
@@ -49,7 +50,17 @@ export async function createFirmAction(
     return { fieldErrors: errors, error: 'platform.errors.check' };
   }
 
-  const created = await createFirm(session, parsed.data);
+  let created;
+  try {
+    created = await createFirm(session, parsed.data);
+  } catch (error) {
+    // Every login belongs to exactly one person. The same address cannot be a
+    // firm admin here and something else elsewhere.
+    if (isUniqueViolation(error, USERS_EMAIL_UNIQUE)) {
+      return { fieldErrors: { adminEmail: 'platform.errors.emailTaken' }, error: 'platform.errors.check' };
+    }
+    throw error;
+  }
 
   // After the commit. An email carrying a live setup link for a firm that
   // failed to create is worse than a firm with no email sent.

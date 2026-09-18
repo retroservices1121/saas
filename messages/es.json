@@ -811,6 +811,7 @@
       "check": "Revise los campos señalados.",
       "noValue": "No hay nada registrado para ese campo.",
       "revealFailed": "No se pudo revelar.",
+      "emailTaken": "Ya existe una cuenta con este correo. Cada persona inicia sesión con una sola dirección.",
       "employerMailbox": "Esa dirección pertenece al dominio de correo de su propia empresa, lo que significa que usted podría leer la invitación y abrir el enlace. Use una dirección que la persona controle personalmente."
     }
   },
@@ -853,7 +854,8 @@
       "submit": "Crear despacho"
     },
     "errors": {
-      "check": "Revise los campos señalados."
+      "check": "Revise los campos señalados.",
+      "emailTaken": "Ya existe una cuenta con este correo. Cada persona inicia sesión con una sola dirección."
     }
   }
 }

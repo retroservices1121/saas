@@ -26,6 +26,7 @@ import { createCompanySchema, emailSchema, revealSchema } from '../../lib/valida
 import { withScope, schema } from '../../lib/db/scoped';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { USERS_EMAIL_UNIQUE, isUniqueViolation } from '../../lib/db/errors';
 
 export interface ActionResult {
   error?: string;
@@ -69,7 +70,15 @@ export async function createCompanyAction(
   });
   if (!parsed.success) return fieldErrors(parsed.error);
 
-  const created = await createCompany(session, parsed.data);
+  let created;
+  try {
+    created = await createCompany(session, parsed.data);
+  } catch (error) {
+    if (isUniqueViolation(error, USERS_EMAIL_UNIQUE)) {
+      return { fieldErrors: { adminEmail: 'firm.errors.emailTaken' }, error: 'firm.errors.check' };
+    }
+    throw error;
+  }
 
   // Sent after the transaction commits. An email carrying a live setup link for
   // a company that failed to create is worse than a company with no email sent,
@@ -258,7 +267,15 @@ export async function inviteStaffAction(
   });
   if (!parsed.success) return fieldErrors(parsed.error);
 
-  const invited = await inviteFirmStaff(session, parsed.data);
+  let invited;
+  try {
+    invited = await inviteFirmStaff(session, parsed.data);
+  } catch (error) {
+    if (isUniqueViolation(error, USERS_EMAIL_UNIQUE)) {
+      return { fieldErrors: { email: 'firm.errors.emailTaken' }, error: 'firm.errors.check' };
+    }
+    throw error;
+  }
 
   await sendStaffSetupEmail({
     to: parsed.data.email,
