@@ -526,12 +526,23 @@ export async function inviteFirmStaff(
  * expiry. Suspending yourself is refused — an administrator who locks
  * themselves out of the only FIRM_ADMIN account needs the platform admin to
  * undo it.
+ *
+ * Reactivation restores the status the account had, which is not always
+ * `active`. Somebody suspended before they ever opened their setup link has no
+ * authenticator, and `users_totp_ck` refuses a firm user in `active` without
+ * one — so reactivating them wrote a constraint violation into a server action
+ * and the page rendered "a server-side exception has occurred". Worse, they
+ * were stuck there: `completeSetup` only finishes an account that is still
+ * `pending`, so the setup link they were holding had stopped working too.
+ * Sending them back to `pending` is both what the constraint permits and what
+ * the word means — their invitation is live again, and `resendStaffSetup`
+ * below can put a fresh link in front of them.
  */
 export async function setStaffStatus(
   session: FirmSession,
   userId: string,
   status: 'active' | 'suspended',
-): Promise<boolean> {
+): Promise<'active' | 'pending' | 'suspended' | null> {
   if (session.role !== 'FIRM_ADMIN') {
     throw new Error('Only a FIRM_ADMIN may manage firm staff (spec section 2).');
   }
@@ -542,7 +553,19 @@ export async function setStaffStatus(
   return withScope(session, async (db) => {
     const updated = await db
       .update(schema.users)
-      .set({ status })
+      .set({
+        // Decided in SQL rather than by reading the row first: two admins
+        // reactivating the same account would both read `totp_enabled_at` as
+        // null, and one of them would then write `active` over an enrollment
+        // that had just landed.
+        status:
+          status === 'suspended'
+            ? 'suspended'
+            : sql`case
+                     when ${schema.users.totpEnabledAt} is null then 'pending'::user_status
+                     else 'active'::user_status
+                   end`,
+      })
       .where(
         and(
           eq(schema.users.id, userId),
@@ -550,16 +573,93 @@ export async function setStaffStatus(
           isNull(schema.users.companyId),
         ),
       )
-      .returning({ id: schema.users.id });
+      .returning({ status: schema.users.status });
 
-    if (updated.length === 0) return false;
+    const applied = updated[0]?.status;
+    if (!applied) return null;
 
     await audit(db, session, {
       action: status === 'suspended' ? 'GRANT_REVOKED' : 'GRANT_CREATED',
       targetType: 'users',
       targetId: userId,
-      metadata: { operation: 'staff_status', status },
+      // The status that was actually written, not the one that was asked for.
+      metadata: { operation: 'staff_status', status: applied },
     });
-    return true;
+    return applied;
+  });
+}
+
+export interface StaffSetupLink {
+  email: string;
+  name: string;
+  /** The raw token. Emailed once, never stored. */
+  setupToken: string;
+}
+
+/**
+ * Issues a replacement setup link for a staff member who has not finished.
+ *
+ * For the two ways the first one fails: it expired after its 24 hours, or it
+ * never arrived. Outstanding links are retired first — one live link per
+ * person, so a resend genuinely supersedes rather than accumulates.
+ *
+ * Returns null rather than throwing when there is nobody to re-invite, so that
+ * a stale page whose button is still on screen after the person completed
+ * setup is a no-op instead of an error. An account that is already `active`
+ * does not need an invitation; it needs a password reset, which is a different
+ * feature and not one this system has yet.
+ */
+export async function resendStaffSetup(
+  session: FirmSession,
+  userId: string,
+): Promise<StaffSetupLink | null> {
+  if (session.role !== 'FIRM_ADMIN') {
+    throw new Error('Only a FIRM_ADMIN may manage firm staff (spec section 2).');
+  }
+
+  return withScope(session, async (db) => {
+    const rows = await db
+      .select({
+        email: schema.users.email,
+        name: schema.users.name,
+        status: schema.users.status,
+        totpEnabledAt: schema.users.totpEnabledAt,
+      })
+      .from(schema.users)
+      .where(
+        and(
+          eq(schema.users.id, userId),
+          eq(schema.users.firmId, session.firmId),
+          isNull(schema.users.companyId),
+        ),
+      )
+      .limit(1);
+
+    const user = rows[0];
+    // Both halves matter. `pending` alone would re-invite a suspended account
+    // back into existence; a null `totp_enabled_at` alone would hand a live
+    // password-and-authenticator link to somebody who already has both.
+    if (!user || user.status !== 'pending' || user.totpEnabledAt !== null) return null;
+
+    await db
+      .update(schema.userSetupTokens)
+      .set({ consumedAt: new Date() })
+      .where(
+        and(
+          eq(schema.userSetupTokens.userId, userId),
+          isNull(schema.userSetupTokens.consumedAt),
+        ),
+      );
+
+    const setupToken = await issueSetupToken(db, userId);
+
+    await audit(db, session, {
+      action: 'INVITE_SENT',
+      targetType: 'users',
+      targetId: userId,
+      metadata: { operation: 'staff_setup_resent' },
+    });
+
+    return { email: user.email, name: user.name, setupToken };
   });
 }

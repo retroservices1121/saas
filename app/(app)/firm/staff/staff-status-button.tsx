@@ -4,16 +4,24 @@ import { useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { setStaffStatusAction } from '../../../_actions/firm';
 
+/**
+ * Suspend, or lift a suspension.
+ *
+ * Reactivation asks for `active` and lets the server decide what that means:
+ * somebody suspended before they ever opened their setup link goes back to
+ * `pending`, because a firm user cannot be `active` without an authenticator.
+ * Deciding it here would mean trusting a status the browser sent back.
+ */
 export default function StaffStatusButton({
   userId,
   status,
 }: {
   userId: string;
-  status: 'active' | 'suspended';
+  status: 'pending' | 'active' | 'suspended';
 }) {
   const t = useTranslations();
   const [pending, startTransition] = useTransition();
-  const next = status === 'active' ? 'suspended' : 'active';
+  const next = status === 'suspended' ? 'active' : 'suspended';
 
   return (
     <button
@@ -24,9 +32,9 @@ export default function StaffStatusButton({
     >
       {pending
         ? t('app.working')
-        : status === 'active'
-          ? t('firm.staff.suspend')
-          : t('firm.staff.reactivate')}
+        : status === 'suspended'
+          ? t('firm.staff.reactivate')
+          : t('firm.staff.suspend')}
     </button>
   );
 }

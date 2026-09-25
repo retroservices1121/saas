@@ -15,6 +15,7 @@ import { requireFirm, requireFirmAdmin } from '../../lib/auth/current';
 import {
   createCompany,
   inviteFirmStaff,
+  resendStaffSetup,
   revokeGrant,
   setStaffStatus,
 } from '../../lib/db/queries/firm';
@@ -27,6 +28,18 @@ import { withScope, schema } from '../../lib/db/scoped';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { USERS_EMAIL_UNIQUE, isUniqueViolation } from '../../lib/db/errors';
+
+/**
+ * Where a setup link points.
+ *
+ * APP_URL rather than the request's own host: behind the proxy the app sees
+ * the internal listener, and a link built from that arrives in somebody's
+ * inbox pointing at localhost.
+ */
+function setupUrl(token: string): string {
+  const origin = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  return `${origin}/setup/${token}`;
+}
 
 export interface ActionResult {
   error?: string;
@@ -88,7 +101,7 @@ export async function createCompanyAction(
     locale: 'en',
     name: parsed.data.adminName,
     companyName: parsed.data.legalName,
-    url: `${(process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/setup/${created.setupToken}`,
+    url: setupUrl(created.setupToken),
   });
 
   revalidatePath('/firm');
@@ -281,7 +294,7 @@ export async function inviteStaffAction(
     to: parsed.data.email,
     locale: 'en',
     name: parsed.data.name,
-    url: `${(process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/setup/${invited.setupToken}`,
+    url: setupUrl(invited.setupToken),
   });
 
   revalidatePath('/firm/staff');
@@ -294,5 +307,32 @@ export async function setStaffStatusAction(
 ): Promise<void> {
   const { session } = await requireFirmAdmin();
   await setStaffStatus(session, userId, status);
+  revalidatePath('/firm/staff');
+}
+
+/**
+ * A fresh setup link for someone whose first one expired or never arrived.
+ *
+ * Nothing is reported back to the caller about who was re-invited, including
+ * whether there was anyone to re-invite: the button is on a page that already
+ * lists them, and the action is a live endpoint that should not answer
+ * questions about ids it was handed.
+ */
+export async function resendStaffSetupAction(userId: string): Promise<void> {
+  const { session } = await requireFirmAdmin();
+
+  const link = await resendStaffSetup(session, userId);
+  if (!link) {
+    revalidatePath('/firm/staff');
+    return;
+  }
+
+  await sendStaffSetupEmail({
+    to: link.email,
+    locale: 'en',
+    name: link.name,
+    url: setupUrl(link.setupToken),
+  });
+
   revalidatePath('/firm/staff');
 }

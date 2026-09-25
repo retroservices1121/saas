@@ -282,6 +282,60 @@ describe('invites, as the policies see them', () => {
   });
 });
 
+describe('setup tokens, as the policies see them', () => {
+  /** A firm admin session for one tenant, at the Postgres level. */
+  const as = (tenant: Tenant) => ({
+    role: 'FIRM_ADMIN',
+    userId: tenant.firm.firmAdminUserId,
+    firmId: tenant.firm.firmId,
+    dbRole: 'app_firm',
+  });
+
+  /** The setup token seedTenant's company admin was created with. */
+  const tokensOf = (tenant: Tenant) => `
+    select count(*)::text as n from user_setup_tokens
+     where user_id in (select id from users where firm_id = '${tenant.firm.firmId}')
+  `;
+
+  it('a firm admin can see its own', async () => {
+    const rows = await asRole(as(a), (tx) => tx.unsafe<{ n: string }[]>(tokensOf(a)));
+    expect(Number(rows[0]!.n)).toBeGreaterThan(0);
+  });
+
+  it("a firm admin cannot see another firm's", async () => {
+    const rows = await asRole(as(a), (tx) => tx.unsafe<{ n: string }[]>(tokensOf(b)));
+    expect(Number(rows[0]!.n)).toBe(0);
+  });
+
+  it("a firm admin cannot retire another firm's", async () => {
+    // app_firm holds UPDATE (consumed_at) so that a resend can supersede the
+    // link it replaces. Without a firm predicate on the policy that same
+    // privilege would let any firm admin kill every other firm's outstanding
+    // invitations — invisibly, since the rows they are killing are rows they
+    // cannot read.
+    const updated = await asRole(as(a), (tx) => tx<{ id: string }[]>`
+      update user_setup_tokens set consumed_at = now()
+       where user_id in (select id from users where firm_id = ${b.firm.firmId})
+       returning id
+    `);
+    expect(updated).toHaveLength(0);
+  });
+
+  it('a firm admin cannot extend a link, even one of its own', async () => {
+    // Column-level: `consumed_at` and nothing else. Extending the 24 hours or
+    // rewriting the hash are not things a resend needs to do.
+    for (const column of ['expires_at = now()', "token_hash = 'x'"]) {
+      await expect(
+        asRole(as(a), (tx) =>
+          tx.unsafe(`update user_setup_tokens set ${column} where user_id in (
+            select id from users where firm_id = '${a.firm.firmId}')`),
+        ),
+        `app_firm could write user_setup_tokens.${column}`,
+      ).rejects.toThrow(/permission denied/i);
+    }
+  });
+});
+
 describe('no policy silently widens another', () => {
   it('has no FOR ALL policy on a table whose SELECT is meant to be narrower', async () => {
     // A FOR ALL policy applies its USING clause to SELECT too, and permissive
@@ -294,7 +348,8 @@ describe('no policy silently widens another', () => {
        where schemaname = 'public'
          and cmd = 'ALL'
          and tablename in ('users', 'invites', 'companies', 'workers',
-                           'worker_records', 'company_owners', 'documents', 'notes')
+                           'worker_records', 'company_owners', 'documents', 'notes',
+                           'user_setup_tokens')
        order by tablename
     `;
     expect(rows.map((row) => `${row.tablename}.${row.policyname}`)).toEqual([]);

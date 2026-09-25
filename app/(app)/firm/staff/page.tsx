@@ -3,6 +3,7 @@ import { requireFirmAdmin } from '../../../../lib/auth/current';
 import { listFirmStaff } from '../../../../lib/db/queries/firm';
 import { Card, StatusChip } from '../../../_components/form';
 import InviteStaffForm from './invite-staff-form';
+import ResendSetupButton from './resend-setup-button';
 import StaffStatusButton from './staff-status-button';
 
 export const dynamic = 'force-dynamic';
@@ -77,16 +78,34 @@ export default async function FirmStaffPage({
                     ? member.lastLoginAt.toISOString().slice(0, 10)
                     : t('firm.staff.never')}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3">
                   {/* Not for your own row: an admin who suspends the only
                       FIRM_ADMIN account needs the platform admin to undo it. */}
                   {member.id === user.userId ? (
-                    <span className="text-xs text-neutral-400">{t('firm.staff.you')}</span>
+                    <span className="block text-right text-xs text-neutral-400">
+                      {t('firm.staff.you')}
+                    </span>
                   ) : (
-                    <StaffStatusButton
-                      userId={member.id}
-                      status={member.status === 'suspended' ? 'suspended' : 'active'}
-                    />
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {/* Only while the invitation is still the thing standing
+                          between them and an account. A suspended invitee has
+                          to be reactivated first — which returns them to
+                          `pending` — and an active one needs a password reset,
+                          not a second setup link. */}
+                      {member.status === 'pending' ? (
+                        <ResendSetupButton userId={member.id} />
+                      ) : null}
+                      <StaffStatusButton
+                        userId={member.id}
+                        status={
+                          member.status === 'suspended'
+                            ? 'suspended'
+                            : member.status === 'pending'
+                              ? 'pending'
+                              : 'active'
+                        }
+                      />
+                    </div>
                   )}
                 </td>
               </tr>

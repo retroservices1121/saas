@@ -644,6 +644,9 @@
       "send": "Send the invite",
       "suspend": "Suspend",
       "reactivate": "Reactivate",
+      "resend": "Resend the invite",
+      "resendHint": "Sends a new setup link and stops the old one working.",
+      "resent": "Invite sent again",
       "statuses": {
         "active": "Active",
         "pending": "Setup pending",

@@ -129,7 +129,20 @@ export async function setFirmStatus(
     // sessions on their next request as well as blocking new logins.
     await db
       .update(schema.users)
-      .set({ status: status === 'suspended' ? 'suspended' : 'active' })
+      .set({
+        // Reactivation restores what each account was, which is `pending` for
+        // anyone who never enrolled an authenticator — a firm admin may have
+        // suspended an invitee individually before the firm itself was
+        // suspended. `users_totp_ck` refuses those rows in `active`, and the
+        // violation would take the whole firm's reactivation down with it.
+        status:
+          status === 'suspended'
+            ? 'suspended'
+            : sql`case
+                     when ${schema.users.totpEnabledAt} is null then 'pending'::user_status
+                     else 'active'::user_status
+                   end`,
+      })
       .where(
         and(
           eq(schema.users.firmId, firmId),

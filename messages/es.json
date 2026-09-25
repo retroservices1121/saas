@@ -650,6 +650,9 @@
       "send": "Enviar la invitación",
       "suspend": "Suspender",
       "reactivate": "Reactivar",
+      "resend": "Reenviar la invitación",
+      "resendHint": "Envía un enlace de configuración nuevo y desactiva el anterior.",
+      "resent": "Invitación reenviada",
       "statuses": {
         "active": "Activo",
         "pending": "Configuración pendiente",
